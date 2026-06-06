@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#12111a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MEMO">
+<link rel="manifest" href="./manifest.json">
+<title>MEMO</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#12111a;--surface:#1e1d2a;--surface2:#272538;--surface3:#302e44;
+  --border:#302e44;--border2:#3d3a56;
+  --text:#e8e6f5;--muted:#6e6a90;--muted2:#9d99c0;
+  --prism-green:#4caf7d;--prism-blue:#5b9bd5;--prism-orange:#e8834a;
+  --prism-purple:#9c6fdb;--prism-yellow:#e8c94a;--prism-red:#e05c6e;
+  --shadow:0 4px 24px rgba(0,0,0,.5);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',Meiryo,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+header{flex-shrink:0;background:var(--surface);padding:0 16px;height:50px;display:flex;align-items:center;gap:10px;border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a) 1}
+.logo{font-size:1.15rem;font-weight:900;letter-spacing:.18em;flex:1;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.storage-bar{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.storage-bar .bar{width:48px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.storage-bar .bar-fill{height:100%;border-radius:2px;background:var(--prism-green);transition:width .3s}
+.storage-bar.warn .bar-fill{background:var(--prism-yellow)}
+.storage-bar.danger .bar-fill{background:var(--prism-red)}
+.storage-bar.warn .pct{color:var(--prism-yellow)}
+.storage-bar.danger .pct{color:var(--prism-red)}
+.hbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.73rem;letter-spacing:.06em;font-weight:600;transition:.15s}
+.hbtn:hover{border-color:var(--prism-blue);color:var(--prism-blue)}
+
+.tabs{flex-shrink:0;display:flex;background:#0e0d16;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;color:var(--muted);cursor:pointer;font-size:.75rem;letter-spacing:.07em;font-weight:600;border-radius:6px 6px 0 0;transition:.15s;white-space:nowrap;border:1px solid transparent;border-bottom:none}
+.tab:hover{color:var(--muted2);background:var(--surface)}
+.tab.active{color:var(--text);background:var(--surface);border-color:var(--border2)}
+.badge{border-radius:5px;padding:1px 6px;font-size:.65rem;margin-left:4px;font-weight:700}
+.tab.active .badge{background:var(--prism-blue);color:#fff}
+.tab:not(.active) .badge{background:var(--surface3);color:var(--muted2)}
+.badge.gray{background:var(--surface3);color:var(--muted2)}
+
+.layout{flex:1;overflow:hidden;display:flex;flex-direction:column}
+main{flex:1;overflow-y:auto;padding:14px 16px}
+main::-webkit-scrollbar{width:4px}
+main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.add-btn{background:var(--prism-green);color:#0d2218;border:none;padding:7px 16px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:700;letter-spacing:.06em;transition:.15s;white-space:nowrap}
+.add-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.search-wrap{flex:1;position:relative}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search-box{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border2);border-radius:7px;font-size:.82rem;outline:none;background:var(--surface);color:var(--text);transition:.15s}
+.search-box:focus{border-color:var(--prism-blue);background:var(--surface2)}
+.icon-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:7px 10px;border-radius:7px;cursor:pointer;font-size:.8rem;transition:.15s}
+.icon-btn:hover{border-color:var(--prism-purple);color:var(--prism-purple)}
+.icon-btn.active{background:var(--surface3);border-color:var(--prism-purple);color:var(--prism-purple)}
+
+.notes-grid{display:grid;gap:10px}
+.notes-grid.normal{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.notes-grid.compact{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+
+.note{border-radius:8px;padding:12px 13px;background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);transition:border-color .15s,transform .15s,box-shadow .15s;display:flex;flex-direction:column;cursor:pointer;user-select:none;min-height:90px}
+.note:hover{box-shadow:0 0 0 1px rgba(91,155,213,.2),0 6px 20px rgba(0,0,0,.4);transform:translateY(-2px)}
+.note.pinned{border-top-color:var(--prism-yellow)!important;border-color:rgba(232,201,74,.3)}
+.note.pinned:hover{border-color:var(--prism-yellow)}
+.note.dragging{opacity:.3;transform:scale(.94)}
+.note.drag-over{box-shadow:0 0 0 2px var(--prism-green)}
+.note:nth-child(4n+1){border-top-color:var(--prism-blue)}
+.note:nth-child(4n+2){border-top-color:var(--prism-green)}
+.note:nth-child(4n+3){border-top-color:var(--prism-purple)}
+.note:nth-child(4n+4){border-top-color:var(--prism-orange)}
+.note-meta{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.note-date{font-size:.65rem;color:var(--muted);flex:1;font-family:monospace}
+.pin-dot{width:7px;height:7px;border-radius:2px;background:var(--prism-yellow);flex-shrink:0}
+.arc-badge{font-size:.6rem;background:var(--surface3);color:var(--muted2);border-radius:4px;padding:1px 5px;border:1px solid var(--border2)}
+.note-body{font-size:.84rem;line-height:1.6;color:var(--text);word-break:break-word;white-space:pre-wrap;flex:1;overflow:hidden;max-height:120px}
+.compact .note{padding:8px 10px;min-height:unset}
+.compact .note-body{font-size:.77rem;max-height:52px}
+
+.section-label{font-size:.67rem;color:var(--muted);margin:4px 0 8px;letter-spacing:.1em;font-weight:700;display:flex;align-items:center;gap:8px;grid-column:1/-1}
+.section-label::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--prism-yellow);flex-shrink:0}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border2)}
+.empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:.85rem;grid-column:1/-1;line-height:2.2}
+.arc-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.arc-header h2{font-size:.78rem;letter-spacing:.1em;font-weight:700;color:var(--muted2)}
+.arc-cnt{background:var(--prism-red);color:#fff;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700}
+.trash-info{font-size:.75rem;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);line-height:1.7}
+
+/* EDIT OVERLAY */
+.edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:20px}
+.edit-overlay.show{display:flex}
+.edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
+.edit-top{padding:12px 14px 0;display:flex;align-items:center;gap:8px}
+.edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
+.edit-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
+.edit-close:hover{background:var(--surface3);color:var(--text)}
+.edit-textarea{width:100%;min-height:420px;max-height:68vh;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none}
+.edit-textarea::placeholder{color:var(--muted)}
+.edit-hint{padding:0 14px 6px;font-size:.67rem;color:var(--muted);letter-spacing:.04em}
+.edit-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ea-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);padding:6px 11px;border-radius:6px;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap}
+.ea-btn:hover{background:var(--surface3)}
+.ea-btn.pin{border-color:rgba(232,201,74,.4);color:var(--prism-yellow)}
+.ea-btn.pin:hover{background:rgba(232,201,74,.1)}
+.ea-btn.arc{border-color:rgba(91,155,213,.4);color:var(--prism-blue)}
+.ea-btn.arc:hover{background:rgba(91,155,213,.1)}
+.ea-btn.del{border-color:rgba(224,92,110,.4);color:var(--prism-red)}
+.ea-btn.del:hover{background:rgba(224,92,110,.1)}
+.ea-save{margin-left:auto;background:var(--prism-green);color:#0d2218;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;letter-spacing:.05em;transition:.15s}
+.ea-save:hover{filter:brightness(1.15)}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.85);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-red);border-radius:10px;padding:20px;width:100%;max-width:300px;box-shadow:var(--shadow)}
+.modal h3{font-size:.88rem;margin-bottom:9px;letter-spacing:.06em;font-weight:700}
+.confirm-msg{font-size:.82rem;line-height:1.7;color:var(--muted2);margin-bottom:14px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:6px 13px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600}
+.btn-del{background:var(--prism-red);color:#fff;border:none;padding:6px 15px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:9px 14px;border-radius:8px;font-size:.78rem;box-shadow:var(--shadow);display:none;align-items:center;gap:10px;z-index:300;border:1px solid var(--border2);white-space:nowrap}
+#toast.show{display:flex}
+#toast-undo{background:var(--prism-blue);border:none;color:#fff;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
+#install-banner{display:none;background:var(--surface2);border:1px solid rgba(91,155,213,.35);border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:.77rem;align-items:center;gap:10px;color:var(--muted2)}
+#install-banner.show{display:flex}
+#install-btn{background:var(--prism-blue);color:#fff;border:none;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
+#install-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:.9rem}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">MEMO</span>
+  <div class="storage-bar" id="storage-bar">
+    <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+    <span class="pct" id="bar-pct">0%</span>
+  </div>
+  <button class="hbtn" onclick="exportJSON()">EXPORT</button>
+  <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+</header>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('notes')" id="tab-notes">NOTES <span class="badge" id="badge-notes">0</span></div>
+  <div class="tab" onclick="switchTab('archive')" id="tab-archive">ARCHIVE <span class="badge" id="badge-archive">0</span></div>
+  <div class="tab" onclick="switchTab('trash')" id="tab-trash">TRASH <span class="badge gray" id="badge-trash">0</span></div>
+</div>
+<div class="layout">
+<main>
+  <div id="install-banner">
+    <span>ホーム画面に追加してオフラインでも使えます</span>
+    <button id="install-btn" onclick="installPWA()">インストール</button>
+    <button id="install-dismiss" onclick="document.getElementById('install-banner').classList.remove('show')">✕</button>
+  </div>
+  <div id="pane-notes">
+    <div class="toolbar">
+      <button class="add-btn" onclick="openNew()">＋ NEW</button>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-box" id="search-notes" type="search" placeholder="Search…" oninput="renderNotes()">
+      </div>
+      <button class="icon-btn" id="compact-btn" onclick="toggleCompact()">⊞</button>
+    </div>
+    <div id="notes-grid" class="notes-grid normal"></div>
+  </div>
+  <div id="pane-archive" style="display:none">
+    <div class="toolbar">
+      <div class="arc-header" style="flex:1"><h2>ARCHIVE</h2><span class="arc-cnt" id="arc-cnt">0</span></div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-box" id="search-archive" type="search" placeholder="Search…" oninput="renderArchive()">
+      </div>
+    </div>
+    <div id="archive-grid" class="notes-grid normal"></div>
+  </div>
+  <div id="pane-trash" style="display:none">
+    <div class="trash-info">削除したメモは <strong>30秒間</strong> ここに残ります。</div>
+    <div id="trash-grid" class="notes-grid normal"></div>
+  </div>
+</main>
+</div>
+
+<!-- EDIT OVERLAY -->
+<div class="edit-overlay" id="edit-overlay">
+  <div class="edit-panel" id="edit-panel">
+    <div class="edit-top">
+      <span class="edit-label" id="edit-title-label">NEW NOTE</span>
+      <button class="edit-close" onclick="closeEdit()">✕</button>
+    </div>
+    <textarea class="edit-textarea" id="edit-textarea" placeholder="メモを入力…"></textarea>
+    <div class="edit-hint">Ctrl+Enter で保存　／　Esc でキャンセル</div>
+    <div class="edit-actions" id="edit-actions"></div>
+  </div>
+</div>
+
+<!-- confirm delete -->
+<div class="overlay" id="modal-del">
+  <div class="modal">
+    <h3>TRASH</h3>
+    <p class="confirm-msg">ゴミ箱に移しますか？<br>30秒以内なら元に戻せます。</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-del')">キャンセル</button>
+      <button class="btn-del" onclick="confirmDelete()">移動</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
+
+<script>
+let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
+let trashTimers={}, toastTimer=null, deferredPrompt=null;
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`}
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.add('show')});
+function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').classList.remove('show')})}
+window.addEventListener('appinstalled',()=>document.getElementById('install-banner').classList.remove('show'));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+function toggleCompact(){
+  compact=!compact;
+  document.querySelectorAll('.notes-grid').forEach(el=>{el.classList.toggle('normal',!compact);el.classList.toggle('compact',compact)});
+  const b=document.getElementById('compact-btn');b.textContent=compact?'⊟':'⊞';b.classList.toggle('active',compact);
+}
+
+function switchTab(t){
+  currentTab=t;
+  ['notes','archive','trash'].forEach(x=>{
+    document.getElementById('pane-'+x).style.display=x===t?'':'none';
+    document.getElementById('tab-'+x).className='tab'+(x===t?' active':'');
+  });
+  if(t==='archive')renderArchive();else if(t==='trash')renderTrash();else renderNotes();
+}
+
+function buildActions(n,isArc,isTrsh){
+  let acts='';
+  if(!isArc&&!isTrsh&&n){
+    acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}');closeEdit()">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
+    acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}');closeEdit()">📦 保存</button>`;
+    acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
+  } else if(isArc&&n){
+    acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}');closeEdit()">↩ 戻す</button>`;
+    acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
+  } else if(isTrsh&&n){
+    acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');closeEdit()">↩ 復元</button>`;
+    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');closeEdit()">✕ 完全削除</button>`;
+  }
+  acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
+  acts+=`<button class="ea-save" onclick="saveNote()">SAVE</button>`;
+  return acts;
+}
+
+function openNew(){
+  editId=null;
+  document.getElementById('edit-title-label').textContent='NEW NOTE';
+  document.getElementById('edit-textarea').value='';
+  document.querySelector('.edit-panel').style.borderTopColor='var(--prism-blue)';
+  document.getElementById('edit-actions').innerHTML=buildActions(null,false,false);
+  document.getElementById('edit-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('edit-textarea').focus(),50);
+}
+function openEdit(id){
+  const all=[...notes,...trash];
+  const nn=all.find(x=>x.id===id);if(!nn)return;
+  editId=id;
+  const isArc=nn.archived, isTrsh=!!nn.trashedAt&&!notes.find(x=>x.id===id);
+  document.getElementById('edit-title-label').textContent='EDIT NOTE';
+  document.getElementById('edit-textarea').value=nn.text||'';
+  const colors=['var(--prism-blue)','var(--prism-green)','var(--prism-purple)','var(--prism-orange)'];
+  const idx=notes.findIndex(x=>x.id===id);
+  document.querySelector('.edit-panel').style.borderTopColor=nn.pinned?'var(--prism-yellow)':colors[Math.abs(idx)%4]||'var(--prism-blue)';
+  document.getElementById('edit-actions').innerHTML=buildActions(nn,isArc,isTrsh);
+  document.getElementById('edit-overlay').classList.add('show');
+  setTimeout(()=>{const ta=document.getElementById('edit-textarea');ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;},50);
+}
+function closeEdit(){document.getElementById('edit-overlay').classList.remove('show');editId=null;}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+function saveNote(){
+  const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
+  if(editId){
+    const n=[...notes,...trash].find(x=>x.id===editId);
+    if(n){n.text=txt;n.updated=Date.now()}
+  } else {
+    notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:false});
+  }
+  closeEdit();persist();renderAll();
+}
+
+function togglePin(id){const n=notes.find(x=>x.id===id);if(n){n.pinned=!n.pinned;persist();renderNotes();}}
+function archiveNote(id){const n=notes.find(x=>x.id===id);if(n){n.archived=true;n.archivedAt=Date.now();persist();renderAll();}}
+function unarchiveNote(id){const n=notes.find(x=>x.id===id);if(n){n.archived=false;delete n.archivedAt;persist();renderAll();}}
+function askDelete(id){deleteId=id;document.getElementById('modal-del').classList.add('show')}
+function confirmDelete(){
+  const n=notes.find(x=>x.id===deleteId);if(!n){closeModal('modal-del');return}
+  notes=notes.filter(x=>x.id!==deleteId);
+  trash.push({...n,trashedAt:Date.now()});
+  clearTimeout(trashTimers[deleteId]);
+  trashTimers[deleteId]=setTimeout(()=>{trash=trash.filter(x=>x.id!==deleteId);if(currentTab==='trash')renderTrash();updateBadges();persist();},30000);
+  closeModal('modal-del');persist();renderAll();showToast('ゴミ箱に移しました');
+}
+function restoreFromTrash(id){
+  const n=trash.find(x=>x.id===id);if(!n)return;
+  clearTimeout(trashTimers[id]);delete trashTimers[id];
+  trash=trash.filter(x=>x.id!==id);
+  n.archived=false;delete n.trashedAt;
+  notes.unshift(n);persist();renderAll();
+}
+function undoTrash(){if(deleteId)restoreFromTrash(deleteId);hideToast()}
+function permDelete(id){clearTimeout(trashTimers[id]);trash=trash.filter(x=>x.id!==id);persist();renderTrash();updateBadges();}
+
+function copyNote(){
+  const txt=document.getElementById('edit-textarea').value;
+  if(!txt)return;
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(()=>showToast('コピーしました')).catch(()=>fallbackCopy(txt));
+  } else {
+    fallbackCopy(txt);
+  }
+}
+function fallbackCopy(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');showToast('コピーしました');}
+  catch(e){showToast('コピー失敗');}
+  document.body.removeChild(ta);
+}
+
+function showToast(msg){clearTimeout(toastTimer);document.getElementById('toast-msg').textContent=msg;document.getElementById('toast').classList.add('show');toastTimer=setTimeout(hideToast,5000);}
+function hideToast(){document.getElementById('toast').classList.remove('show')}
+
+let dragId=null;
+function onDragStart(e,id){dragId=id;setTimeout(()=>document.querySelector(`[data-id="${id}"]`)?.classList.add('dragging'),0)}
+function onDragEnd(e,id){document.querySelector(`[data-id="${id}"]`)?.classList.remove('dragging');dragId=null}
+function onDragOver(e,id){e.preventDefault();document.querySelectorAll('.note').forEach(x=>x.classList.remove('drag-over'));document.querySelector(`[data-id="${id}"]`)?.classList.add('drag-over')}
+function onDrop(e,toId){
+  e.preventDefault();document.querySelectorAll('.note').forEach(x=>x.classList.remove('drag-over'));
+  if(!dragId||dragId===toId)return;
+  const fi=notes.findIndex(x=>x.id===dragId),ti=notes.findIndex(x=>x.id===toId);
+  if(fi<0||ti<0)return;
+  const [item]=notes.splice(fi,1);notes.splice(ti,0,item);persist();renderNotes();
+}
+
+function makeCard(n,opts={}){
+  const {isArc=false,isTrsh=false}=opts;
+  const txt=(n.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const ts=fmtDate(isArc?n.archivedAt:isTrsh?n.trashedAt:n.updated);
+  let extra='';
+  if(isTrsh){const rem=Math.max(0,Math.round((30000-(Date.now()-(n.trashedAt||0)))/1000));extra=`<span class="arc-badge">⏱${rem}s</span>`;}
+  else if(isArc){extra=`<span class="arc-badge">archived</span>`;}
+  const drag=(!isArc&&!isTrsh)?`draggable="true" ondragstart="onDragStart(event,'${n.id}')" ondragend="onDragEnd(event,'${n.id}')" ondragover="onDragOver(event,'${n.id}')" ondrop="onDrop(event,'${n.id}')"`:''
+  const pin=n.pinned&&!isArc&&!isTrsh?`<span class="pin-dot"></span>`:'';
+  return`<div class="note${n.pinned&&!isArc&&!isTrsh?' pinned':''}" data-id="${n.id}" ${drag} onclick="openEdit('${n.id}')">
+    <div class="note-meta">${pin}<span class="note-date">${ts}</span>${extra}</div>
+    <div class="note-body">${txt}</div>
+  </div>`;
+}
+
+function renderNotes(){
+  const q=document.getElementById('search-notes').value.trim().toLowerCase();
+  const active=notes.filter(n=>!n.archived&&(!q||(n.text||'').toLowerCase().includes(q)));
+  const pinned=active.filter(n=>n.pinned),unpinned=active.filter(n=>!n.pinned);
+  let html='';
+  if(pinned.length)html+=`<div class="section-label">PINNED</div>${pinned.map(n=>makeCard(n)).join('')}`;
+  if(unpinned.length)html+=(pinned.length?`<div class="section-label">NOTES</div>`:'')+unpinned.map(n=>makeCard(n)).join('');
+  if(!html)html=`<div class="empty">No notes yet<br><span style="font-size:.75rem;color:var(--muted)">＋ NEW をクリックして追加</span></div>`;
+  document.getElementById('notes-grid').innerHTML=html;updateBadges();
+}
+function renderArchive(){
+  const q=document.getElementById('search-archive').value.trim().toLowerCase();
+  const list=notes.filter(n=>n.archived&&(!q||(n.text||'').toLowerCase().includes(q)));
+  document.getElementById('archive-grid').innerHTML=list.length?list.map(n=>makeCard(n,{isArc:true})).join(''):`<div class="empty">No archived notes</div>`;
+  document.getElementById('arc-cnt').textContent=list.length;updateBadges();
+}
+function renderTrash(){
+  const list=[...trash].sort((a,b)=>b.trashedAt-a.trashedAt);
+  document.getElementById('trash-grid').innerHTML=list.length?list.map(n=>makeCard(n,{isTrsh:true})).join(''):`<div class="empty">Trash is empty</div>`;
+  updateBadges();
+}
+function updateBadges(){
+  document.getElementById('badge-notes').textContent=notes.filter(n=>!n.archived).length;
+  document.getElementById('badge-archive').textContent=notes.filter(n=>n.archived).length;
+  document.getElementById('badge-trash').textContent=trash.length;
+}
+function renderAll(){renderNotes();if(currentTab==='archive')renderArchive();else if(currentTab==='trash')renderTrash();}
+
+function updateStorage(){
+  try{
+    const used=new Blob([localStorage.getItem('sn3_notes')||'',localStorage.getItem('sn3_trash')||'']).size;
+    const pct=Math.min(100,Math.round(used/(5*1024*1024)*100));
+    const bar=document.getElementById('storage-bar');
+    document.getElementById('bar-fill').style.width=pct+'%';
+    document.getElementById('bar-pct').textContent=pct+'%';
+    bar.className='storage-bar'+(pct>=95?' danger':pct>=80?' warn':'');
+  }catch(e){}
+}
+function persist(){try{localStorage.setItem('sn3_notes',JSON.stringify(notes));localStorage.setItem('sn3_trash',JSON.stringify(trash));updateStorage();}catch(e){}}
+function load(){
+  try{
+    const n=localStorage.getItem('sn3_notes'),t=localStorage.getItem('sn3_trash');
+    if(n)notes=JSON.parse(n);
+    if(t){trash=JSON.parse(t);trash.forEach(n=>{const rem=30000-(Date.now()-(n.trashedAt||0));if(rem>0){trashTimers[n.id]=setTimeout(()=>{trash=trash.filter(x=>x.id!==n.id);if(currentTab==='trash')renderTrash();updateBadges();persist();},rem)}else trash=trash.filter(x=>x.id!==n.id);})}
+  }catch(e){}
+}
+function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`memo_${new Date().toISOString().slice(0,10)}.json`;a.click();}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.notes&&Array.isArray(d.notes)){notes=d.notes;trash=d.trash||[];persist();renderAll();alert(`${notes.length}件読み込みました`)}else if(Array.isArray(d)){notes=d;trash=[];persist();renderAll();alert(`${d.length}件読み込みました`)}else alert('形式が正しくありません')}catch{alert('読み込みに失敗しました')}};r.readAsText(f);}
+
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key==='n'&&!document.getElementById('edit-overlay').classList.contains('show')){e.preventDefault();openNew()}
+  if(e.key==='Escape'){closeEdit();closeModal('modal-del')}
+});
+document.getElementById('edit-textarea').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();saveNote()}
+});
+
+setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
+load();renderAll();updateStorage();
+</script>
+</body>
+</html>
