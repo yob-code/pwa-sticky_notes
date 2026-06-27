@@ -138,7 +138,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <body>
 <header>
   <span class="logo">MEMO</span>
-  <span class="ver" id="today-date"></span>
+  <span class="ver" id="today-date" style="margin-left:-6px"></span>
   <div class="storage-bar" id="storage-bar">
     <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
     <span class="pct" id="bar-pct">0%</span>
@@ -449,7 +449,7 @@ document.getElementById('edit-textarea').addEventListener('keydown',e=>{
 function showTodayDate(){
   const d=new Date();
   const days=['日','月','火','水','木','金','土'];
-  document.getElementById('today-date').textContent=`${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})`;
+  document.getElementById('today-date').textContent=`v${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
 }
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
