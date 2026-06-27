@@ -447,6 +447,9 @@ function load(){
 function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`memo_${new Date().toISOString().slice(0,10)}.json`;a.click();}
 function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.notes&&Array.isArray(d.notes)){notes=d.notes;trash=d.trash||[];persist();renderAll();alert(`${notes.length}件読み込みました`)}else if(Array.isArray(d)){notes=d;trash=[];persist();renderAll();alert(`${d.length}件読み込みました`)}else alert('形式が正しくありません')}catch{alert('読み込みに失敗しました')}};r.readAsText(f);}
 
+document.getElementById('edit-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('edit-overlay'))closeEdit(true);
+});
 document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='n'&&!document.getElementById('edit-overlay').classList.contains('show')){e.preventDefault();openNew()}
   if(e.key==='Escape'){closeEdit();closeModal('modal-del')}
