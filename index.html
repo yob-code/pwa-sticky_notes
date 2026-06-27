@@ -34,6 +34,7 @@ header{flex-shrink:0;background:var(--surface);padding:0 16px;height:50px;displa
 .storage-bar.danger .pct{color:var(--prism-red)}
 .hbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.73rem;letter-spacing:.06em;font-weight:600;transition:.15s}
 .hbtn:hover{border-color:var(--prism-blue);color:var(--prism-blue)}
+.ver{font-size:.62rem;color:var(--muted);white-space:nowrap}
 
 .tabs{flex-shrink:0;display:flex;background:#0e0d16;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--border)}
 .tab{padding:7px 14px;color:var(--muted);cursor:pointer;font-size:.75rem;letter-spacing:.07em;font-weight:600;border-radius:6px 6px 0 0;transition:.15s;white-space:nowrap;border:1px solid transparent;border-bottom:none}
@@ -91,18 +92,20 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .arc-cnt{background:var(--prism-red);color:#fff;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700}
 .trash-info{font-size:.75rem;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);line-height:1.7}
 
-/* EDIT OVERLAY */
-.edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:20px}
+/* EDIT OVERLAY — 縦最大 */
+.edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:stretch;justify-content:center;padding:12px}
 .edit-overlay.show{display:flex}
-.edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
-.edit-top{padding:12px 14px 0;display:flex;align-items:center;gap:8px}
+.edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:560px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 24px)}
+.edit-top{flex-shrink:0;padding:12px 14px 0;display:flex;align-items:center;gap:8px}
 .edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
 .edit-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
 .edit-close:hover{background:var(--surface3);color:var(--text)}
-.edit-textarea{width:100%;min-height:420px;max-height:68vh;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none}
+.edit-textarea{flex:1;width:100%;min-height:0;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none;overflow-y:auto}
+.edit-textarea::-webkit-scrollbar{width:4px}
+.edit-textarea::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .edit-textarea::placeholder{color:var(--muted)}
-.edit-hint{padding:0 14px 6px;font-size:.67rem;color:var(--muted);letter-spacing:.04em}
-.edit-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.edit-hint{flex-shrink:0;padding:4px 14px 6px;font-size:.67rem;color:var(--muted);letter-spacing:.04em}
+.edit-actions{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .ea-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);padding:6px 11px;border-radius:6px;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap}
 .ea-btn:hover{background:var(--surface3)}
 .ea-btn.pin{border-color:rgba(232,201,74,.4);color:var(--prism-yellow)}
@@ -139,6 +142,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
     <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
     <span class="pct" id="bar-pct">0%</span>
   </div>
+  <span class="ver">v2025.06.27</span>
   <button class="hbtn" onclick="exportJSON()">EXPORT</button>
   <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
 </header>
@@ -182,7 +186,6 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </main>
 </div>
 
-<!-- EDIT OVERLAY -->
 <div class="edit-overlay" id="edit-overlay">
   <div class="edit-panel" id="edit-panel">
     <div class="edit-top">
@@ -195,7 +198,6 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
 </div>
 
-<!-- confirm delete -->
 <div class="overlay" id="modal-del">
   <div class="modal">
     <h3>TRASH</h3>
@@ -210,16 +212,32 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
 
 <script>
+const APP_VER='2025.06.27';
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
 let trashTimers={}, toastTimer=null, deferredPrompt=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`}
 
+// PWA
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.add('show')});
 function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').classList.remove('show')})}
 window.addEventListener('appinstalled',()=>document.getElementById('install-banner').classList.remove('show'));
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// SW登録＋起動時自動更新
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(reg=>{
+    reg.update(); // 起動のたびに最新チェック
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;
+      nw.addEventListener('statechange',()=>{
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          showToast('アップデートがあります。再読み込みしてください。');
+        }
+      });
+    });
+  }).catch(()=>{});
+}
 
 function toggleCompact(){
   compact=!compact;
@@ -314,20 +332,15 @@ function undoTrash(){if(deleteId)restoreFromTrash(deleteId);hideToast()}
 function permDelete(id){clearTimeout(trashTimers[id]);trash=trash.filter(x=>x.id!==id);persist();renderTrash();updateBadges();}
 
 function copyNote(){
-  const txt=document.getElementById('edit-textarea').value;
-  if(!txt)return;
+  const txt=document.getElementById('edit-textarea').value;if(!txt)return;
   if(navigator.clipboard&&window.isSecureContext){
     navigator.clipboard.writeText(txt).then(()=>showToast('コピーしました')).catch(()=>fallbackCopy(txt));
-  } else {
-    fallbackCopy(txt);
-  }
+  } else fallbackCopy(txt);
 }
 function fallbackCopy(txt){
-  const ta=document.createElement('textarea');
-  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
   document.body.appendChild(ta);ta.focus();ta.select();
-  try{document.execCommand('copy');showToast('コピーしました');}
-  catch(e){showToast('コピー失敗');}
+  try{document.execCommand('copy');showToast('コピーしました');}catch(e){showToast('コピー失敗');}
   document.body.removeChild(ta);
 }
 
