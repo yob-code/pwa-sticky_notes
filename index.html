@@ -79,7 +79,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .note-date{font-size:.65rem;color:var(--muted);flex:1;font-family:monospace}
 .pin-dot{width:7px;height:7px;border-radius:2px;background:var(--prism-yellow);flex-shrink:0}
 .arc-badge{font-size:.6rem;background:var(--surface3);color:var(--muted2);border-radius:4px;padding:1px 5px;border:1px solid var(--border2)}
-.note-body{font-size:.84rem;line-height:1.6;color:var(--text);word-break:break-word;white-space:pre-wrap;flex:1;overflow:hidden;max-height:120px}
+.note-title{font-size:.85rem;font-weight:700;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-body{font-size:.8rem;line-height:1.5;color:var(--muted2);word-break:break-word;white-space:pre-wrap;flex:1;overflow:hidden;max-height:80px}
 .compact .note{padding:8px 10px;min-height:unset}
 .compact .note-body{font-size:.77rem;max-height:52px}
 
@@ -100,6 +101,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
 .edit-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
 .edit-close:hover{background:var(--surface3);color:var(--text)}
+/* SAVEボタン非表示（×で自動保存） */
+.edit-hint{flex-shrink:0;padding:4px 14px 6px;font-size:.67rem;color:var(--muted);letter-spacing:.04em}
 .edit-textarea{flex:1;width:100%;min-height:0;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none;overflow-y:auto}
 .edit-textarea::-webkit-scrollbar{width:4px}
 .edit-textarea::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -190,10 +193,10 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   <div class="edit-panel" id="edit-panel">
     <div class="edit-top">
       <span class="edit-label" id="edit-title-label">NEW NOTE</span>
-      <button class="edit-close" onclick="closeEdit()">✕</button>
+      <button class="edit-close" onclick="closeEdit()">✕ 保存して閉じる</button>
     </div>
-    <textarea class="edit-textarea" id="edit-textarea" placeholder="メモを入力…"></textarea>
-    <div class="edit-hint">Ctrl+Enter で保存　／　Esc でキャンセル</div>
+    <textarea class="edit-textarea" id="edit-textarea" placeholder="1行目がタイトルになります…"></textarea>
+    <div class="edit-hint">1行目 = タイトル　／　Esc or ✕ で自動保存　／　Ctrl+Enter で保存</div>
     <div class="edit-actions" id="edit-actions"></div>
   </div>
 </div>
@@ -259,20 +262,18 @@ function buildActions(n,isArc,isTrsh){
   if(!isArc&&!isTrsh&&n){
     acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}');closeEdit()">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
     acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}');closeEdit()">📦 保存</button>`;
-    acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn del" onclick="closeEdit(true);askDelete('${n.id}')">🗑 削除</button>`;
   } else if(!isArc&&!isTrsh&&!n){
-    // 新規作成時もピン・アーカイブ可能
     acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
     acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
   } else if(isArc&&n){
     acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}');closeEdit()">↩ 戻す</button>`;
-    acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn del" onclick="closeEdit(true);askDelete('${n.id}')">🗑 削除</button>`;
   } else if(isTrsh&&n){
     acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');closeEdit()">↩ 復元</button>`;
-    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');closeEdit()">✕ 完全削除</button>`;
+    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');closeEdit(true)">✕ 完全削除</button>`;
   }
   acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
-  acts+=`<button class="ea-save" onclick="saveNote()">SAVE</button>`;
   return acts;
 }
 
@@ -299,10 +300,15 @@ function openEdit(id){
   document.getElementById('edit-overlay').classList.add('show');
   setTimeout(()=>{const ta=document.getElementById('edit-textarea');ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;},50);
 }
-function closeEdit(){document.getElementById('edit-overlay').classList.remove('show');editId=null;}
-function closeModal(id){document.getElementById(id).classList.remove('show')}
-
-function saveNote(){
+function closeEdit(skipSave=false){
+  if(!skipSave){
+    const txt=document.getElementById('edit-textarea').value.trim();
+    if(txt) saveNote(true); // 内部呼び出し
+  }
+  document.getElementById('edit-overlay').classList.remove('show');
+  editId=null;
+}
+function saveNote(internal=false){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
   if(editId){
     const n=[...notes,...trash].find(x=>x.id===editId);
@@ -310,7 +316,8 @@ function saveNote(){
   } else {
     notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:false});
   }
-  closeEdit();persist();renderAll();
+  if(!internal){closeEdit(true);}
+  persist();renderAll();
 }
 function saveAndPin(){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
@@ -375,7 +382,9 @@ function onDrop(e,toId){
 
 function makeCard(n,opts={}){
   const {isArc=false,isTrsh=false}=opts;
-  const txt=(n.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lines=(n.text||'').split('\n');
+  const title=lines[0].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const body=lines.slice(1).join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const ts=fmtDate(isArc?n.archivedAt:isTrsh?n.trashedAt:n.updated);
   let extra='';
   if(isTrsh){const rem=Math.max(0,Math.round((30000-(Date.now()-(n.trashedAt||0)))/1000));extra=`<span class="arc-badge">⏱${rem}s</span>`;}
@@ -384,7 +393,8 @@ function makeCard(n,opts={}){
   const pin=n.pinned&&!isArc&&!isTrsh?`<span class="pin-dot"></span>`:'';
   return`<div class="note${n.pinned&&!isArc&&!isTrsh?' pinned':''}" data-id="${n.id}" ${drag} onclick="openEdit('${n.id}')">
     <div class="note-meta">${pin}<span class="note-date">${ts}</span>${extra}</div>
-    <div class="note-body">${txt}</div>
+    ${title?`<div class="note-title">${title}</div>`:''}
+    ${body?`<div class="note-body">${body}</div>`:''}
   </div>`;
 }
 
