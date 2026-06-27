@@ -93,9 +93,9 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .trash-info{font-size:.75rem;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);line-height:1.7}
 
 /* EDIT OVERLAY — 縦最大 */
-.edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:stretch;justify-content:center;padding:12px}
+.edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:12px}
 .edit-overlay.show{display:flex}
-.edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:560px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 24px)}
+.edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:560px;height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
 .edit-top{flex-shrink:0;padding:12px 14px 0;display:flex;align-items:center;gap:8px}
 .edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
 .edit-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
@@ -138,11 +138,11 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <body>
 <header>
   <span class="logo">MEMO</span>
+  <span class="ver" id="today-date"></span>
   <div class="storage-bar" id="storage-bar">
     <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
     <span class="pct" id="bar-pct">0%</span>
   </div>
-  <span class="ver">v2025.06.27</span>
   <button class="hbtn" onclick="exportJSON()">EXPORT</button>
   <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
 </header>
@@ -260,6 +260,10 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}');closeEdit()">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
     acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}');closeEdit()">📦 保存</button>`;
     acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
+  } else if(!isArc&&!isTrsh&&!n){
+    // 新規作成時もピン・アーカイブ可能
+    acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
+    acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
   } else if(isArc&&n){
     acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}');closeEdit()">↩ 戻す</button>`;
     acts+=`<button class="ea-btn del" onclick="closeEdit();askDelete('${n.id}')">🗑 削除</button>`;
@@ -307,6 +311,16 @@ function saveNote(){
     notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:false});
   }
   closeEdit();persist();renderAll();
+}
+function saveAndPin(){
+  const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
+  notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:true});
+  closeEdit();persist();renderAll();showToast('ピン留めで保存しました');
+}
+function saveAndArchive(){
+  const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
+  notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:true,archivedAt:Date.now(),pinned:false});
+  closeEdit();persist();renderAll();showToast('アーカイブで保存しました');
 }
 
 function togglePin(id){const n=notes.find(x=>x.id===id);if(n){n.pinned=!n.pinned;persist();renderNotes();}}
@@ -431,8 +445,15 @@ document.getElementById('edit-textarea').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();saveNote()}
 });
 
+// 今日の日付表示
+function showTodayDate(){
+  const d=new Date();
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('today-date').textContent=`${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})`;
+}
+
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
-load();renderAll();updateStorage();
+load();renderAll();updateStorage();showTodayDate();
 </script>
 </body>
 </html>

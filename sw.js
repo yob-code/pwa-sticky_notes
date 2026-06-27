@@ -1,4 +1,4 @@
-const CACHE = 'sticky-v9';
+const CACHE = 'sticky-v10';
 const ASSETS = [
   './',
   './index.html',
