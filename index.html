@@ -262,7 +262,7 @@ function buildActions(n,isArc,isTrsh){
   if(!isArc&&!isTrsh&&n){
     acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}');closeEdit()">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
     acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}');closeEdit()">📦 保存</button>`;
-    acts+=`<button class="ea-btn del" onclick="closeEdit(true);askDelete('${n.id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn del" onclick="askDelete('${n.id}');closeEdit(true)">🗑 削除</button>`;
   } else if(!isArc&&!isTrsh&&!n){
     acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
     acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
