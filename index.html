@@ -121,9 +121,40 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 #install-banner.show{display:flex}
 #install-btn{background:var(--prism-blue);color:#fff;border:none;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
 #install-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:.9rem}
+/* ロック画面 */
+#lock-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#lock-screen.hide{display:none}
+.lock-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lock-box{display:flex;flex-direction:column;gap:10px;align-items:center;width:240px}
+#lock-input{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:.95rem;background:var(--surface);color:var(--text);outline:none;text-align:center;letter-spacing:.1em}
+#lock-input:focus{border-color:var(--prism-blue)}
+.lock-btn{width:100%;background:var(--prism-blue);color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:700;letter-spacing:.05em}
+.lock-btn:hover{filter:brightness(1.15)}
+.lock-err{color:var(--prism-red);font-size:.75rem;min-height:1em}
+.lock-setup-link{color:var(--muted);font-size:.7rem;cursor:pointer;text-decoration:underline;background:none;border:none}
+.lock-setup-link:hover{color:var(--muted2)}
 </style>
 </head>
 <body>
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <span class="lock-logo">MEMO</span>
+  <div class="lock-box" id="lock-box-enter" style="display:none">
+    <input type="password" id="lock-input" placeholder="パスワード" autocomplete="off">
+    <button class="lock-btn" onclick="tryUnlock()">ロック解除</button>
+    <span class="lock-err" id="lock-err"></span>
+    <button class="lock-setup-link" onclick="if(confirm('パスワードを忘れた場合、設定をリセットしてロックを解除します。続けますか？'))resetLock()">パスワードを忘れた場合</button>
+  </div>
+  <div class="lock-box" id="lock-box-setup">
+    <span style="font-size:.78rem;color:var(--muted2)">パスワードを設定してください</span>
+    <input type="password" id="lock-new1" placeholder="新しいパスワード" autocomplete="off">
+    <input type="password" id="lock-new2" placeholder="確認のため再入力" autocomplete="off">
+    <button class="lock-btn" onclick="setupLock()">設定する</button>
+    <span class="lock-err" id="lock-setup-err"></span>
+    <button class="lock-setup-link" onclick="skipLock()">設定しない</button>
+  </div>
+</div>
+
 <header>
   <span class="logo">MEMO</span>
   <span class="ver" id="today-date" style="margin-left:-6px"></span>
@@ -133,6 +164,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
   <button class="hbtn" onclick="exportJSON()">EXPORT</button>
   <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+  <button class="hbtn" onclick="lockNow()" title="今すぐロック">🔒</button>
 </header>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('notes')" id="tab-notes">NOTES <span class="badge" id="badge-notes">0</span></div>
@@ -202,6 +234,65 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <script>
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
 let trashTimers={}, toastTimer=null, deferredPrompt=null;
+
+// ===== 簡易ロック機能（SHA-256ハッシュ保存） =====
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function initLock(){
+  const hash=localStorage.getItem('memo_lock_hash');
+  if(hash){
+    document.getElementById('lock-box-setup').style.display='none';
+    document.getElementById('lock-box-enter').style.display='flex';
+    setTimeout(()=>document.getElementById('lock-input').focus(),100);
+  } else {
+    document.getElementById('lock-box-setup').style.display='flex';
+    document.getElementById('lock-box-enter').style.display='none';
+  }
+}
+async function tryUnlock(){
+  const input=document.getElementById('lock-input').value;
+  const hash=localStorage.getItem('memo_lock_hash');
+  const inputHash=await sha256(input);
+  if(inputHash===hash){
+    document.getElementById('lock-screen').classList.add('hide');
+    document.getElementById('lock-input').value='';
+    document.getElementById('lock-err').textContent='';
+  } else {
+    document.getElementById('lock-err').textContent='パスワードが違います';
+    document.getElementById('lock-input').value='';
+    document.getElementById('lock-input').focus();
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const li=document.getElementById('lock-input');
+  if(li)li.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+  const n2=document.getElementById('lock-new2');
+  if(n2)n2.addEventListener('keydown',e=>{if(e.key==='Enter')setupLock();});
+});
+async function setupLock(){
+  const p1=document.getElementById('lock-new1').value;
+  const p2=document.getElementById('lock-new2').value;
+  if(!p1){document.getElementById('lock-setup-err').textContent='パスワードを入力してください';return}
+  if(p1!==p2){document.getElementById('lock-setup-err').textContent='パスワードが一致しません';return}
+  const hash=await sha256(p1);
+  localStorage.setItem('memo_lock_hash',hash);
+  document.getElementById('lock-screen').classList.add('hide');
+}
+function skipLock(){
+  document.getElementById('lock-screen').classList.add('hide');
+}
+function lockNow(){
+  document.getElementById('lock-screen').classList.remove('hide');
+  initLock();
+}
+function resetLock(){
+  localStorage.removeItem('memo_lock_hash');
+  initLock();
+}
+initLock();
+// ===== ロック機能ここまで =====
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`}
@@ -452,8 +543,8 @@ function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)]
 function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.notes&&Array.isArray(d.notes)){notes=d.notes;trash=d.trash||[];persist();renderAll();alert(`${notes.length}件読み込みました`)}else if(Array.isArray(d)){notes=d;trash=[];persist();renderAll();alert(`${d.length}件読み込みました`)}else alert('形式が正しくありません')}catch{alert('読み込みに失敗しました')}};r.readAsText(f);}
 
 function showTodayDate(){
-  const d=new Date();
-  document.getElementById('today-date').textContent=`v${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  // アプリのアップデート日時（コード変更時に手動更新）
+  document.getElementById('today-date').textContent='Updated: 2026.06.30 15:40';
 }
 
 // 編集画面の外クリックでキャンセル
