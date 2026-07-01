@@ -121,7 +121,22 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 #install-banner.show{display:flex}
 #install-btn{background:var(--prism-blue);color:#fff;border:none;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
 #install-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:.9rem}
-/* ロック画面 */
+/* AI校正overlay */
+.ai-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.88);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;padding:20px}
+.ai-overlay.show{display:flex}
+.ai-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-purple);border-radius:10px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
+.ai-top{padding:12px 14px 0;display:flex;align-items:center;gap:8px}
+.ai-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--prism-purple);flex:1}
+.ai-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
+.ai-close:hover{background:var(--surface3);color:var(--text)}
+.ai-result{margin:12px 14px;min-height:120px;max-height:45vh;overflow-y:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:10px 12px;font-size:.86rem;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.ai-result.loading{color:var(--muted);font-style:italic}
+.ai-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.ai-run{background:var(--prism-purple);color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:.15s}
+.ai-run:hover{filter:brightness(1.2)}
+.ai-run:disabled{opacity:.4;cursor:default}
+.ai-apply{background:var(--prism-green);color:#0d2218;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:.15s}
+.ai-apply:disabled{opacity:.4;cursor:default}
 #lock-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px}
 #lock-screen.hide{display:none}
 .lock-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -229,6 +244,22 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </div>
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
+
+<!-- AI校正overlay -->
+<div class="ai-overlay" id="ai-overlay">
+  <div class="ai-panel">
+    <div class="ai-top">
+      <span class="ai-label">✨ 文体を整える</span>
+      <button class="ai-close" onclick="closeAI()">✕</button>
+    </div>
+    <div class="ai-result" id="ai-result">「実行」を押すと文章を整えます。</div>
+    <div class="ai-actions">
+      <button class="btn-cancel" onclick="closeAI()">キャンセル</button>
+      <button class="ai-run" id="ai-run" onclick="runAI()">▶ 実行</button>
+      <button class="ai-apply" id="ai-apply" onclick="applyAI()" disabled>✓ 適用</button>
+    </div>
+  </div>
+</div>
 
 <script>
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
@@ -344,6 +375,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn del" onclick="permDelete('${id}');forceCloseEdit()">✕ 完全削除</button>`;
   }
   acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
+  acts+=`<button class="ea-btn ai" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openAI()">✨ 校正</button>`;
   return acts;
 }
 
@@ -459,6 +491,51 @@ function fallbackCopy(txt){
   document.body.removeChild(ta);
 }
 
+// AI校正
+const WORKER_URL='https://memo-api.ksey-fgljfsmg7475219t.workers.dev';
+const APP_TOKEN='memo2025secure';
+let aiResult='';
+
+function openAI(){
+  const txt=document.getElementById('edit-textarea').value.trim();
+  if(!txt){showToast('テキストを入力してください');return}
+  document.getElementById('ai-result').textContent='「実行」を押すと文章を整えます。';
+  document.getElementById('ai-result').classList.remove('loading');
+  document.getElementById('ai-apply').disabled=true;
+  aiResult='';
+  document.getElementById('ai-overlay').classList.add('show');
+}
+function closeAI(){document.getElementById('ai-overlay').classList.remove('show')}
+async function runAI(){
+  const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
+  const res=document.getElementById('ai-result');
+  const runBtn=document.getElementById('ai-run');
+  const applyBtn=document.getElementById('ai-apply');
+  res.textContent='処理中…';res.classList.add('loading');
+  runBtn.disabled=true;applyBtn.disabled=true;aiResult='';
+  try{
+    const r=await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-App-Token':APP_TOKEN},
+      body:JSON.stringify({text:txt})
+    });
+    const data=await r.json();
+    aiResult=data.result||'';
+    res.textContent=aiResult||'結果が取得できませんでした';
+    res.classList.remove('loading');
+    applyBtn.disabled=!aiResult;
+  }catch(e){
+    res.textContent='エラーが発生しました。接続を確認してください。';
+    res.classList.remove('loading');
+  }
+  runBtn.disabled=false;
+}
+function applyAI(){
+  if(!aiResult)return;
+  document.getElementById('edit-textarea').value=aiResult;
+  closeAI();showToast('校正結果を適用しました');
+}
+
 function showToast(msg){clearTimeout(toastTimer);document.getElementById('toast-msg').textContent=msg;document.getElementById('toast').classList.add('show');toastTimer=setTimeout(hideToast,5000);}
 function hideToast(){document.getElementById('toast').classList.remove('show')}
 
@@ -543,7 +620,7 @@ function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 
 function showTodayDate(){
   // アプリのアップデート日時（コード変更時に手動更新）
-  document.getElementById('today-date').textContent='Updated: 2026.07.01 10:00';
+  document.getElementById('today-date').textContent='Updated: 2026.07.01 11:00';
 }
 
 // 編集画面の外クリックでキャンセル
