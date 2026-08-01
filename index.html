@@ -19,6 +19,7 @@
   --prism-green:#4caf7d;--prism-blue:#5b9bd5;--prism-orange:#e8834a;
   --prism-purple:#9c6fdb;--prism-yellow:#e8c94a;--prism-red:#e05c6e;
   --shadow:0 4px 24px rgba(0,0,0,.5);
+  --note-red:#4a1a1a;--note-yellow:#3a3000;--note-green:#0f2a18;--note-blue:#0a1e3a;
 }
 html,body{height:100%;overflow:hidden}
 body{font-family:'Segoe UI',Meiryo,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
@@ -59,16 +60,20 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .notes-grid{display:grid;gap:10px}
 .notes-grid.normal{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 .notes-grid.compact{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
-.note{border-radius:8px;padding:12px 13px;background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);transition:border-color .15s,transform .15s,box-shadow .15s;display:flex;flex-direction:column;cursor:pointer;user-select:none;min-height:90px}
+
+/* カード — ランダムボーダーなし、背景色で区別 */
+.note{border-radius:8px;padding:12px 13px;background:var(--surface);border:1px solid var(--border2);transition:border-color .15s,transform .15s,box-shadow .15s;display:flex;flex-direction:column;cursor:pointer;user-select:none;min-height:90px}
 .note:hover{box-shadow:0 0 0 1px rgba(91,155,213,.2),0 6px 20px rgba(0,0,0,.4);transform:translateY(-2px)}
-.note.pinned{border-top-color:var(--prism-yellow)!important;border-color:rgba(232,201,74,.3)}
+.note.pinned{border-color:rgba(232,201,74,.4)}
 .note.pinned:hover{border-color:var(--prism-yellow)}
 .note.dragging{opacity:.3;transform:scale(.94)}
 .note.drag-over{box-shadow:0 0 0 2px var(--prism-green)}
-.note:nth-child(4n+1){border-top-color:var(--prism-blue)}
-.note:nth-child(4n+2){border-top-color:var(--prism-green)}
-.note:nth-child(4n+3){border-top-color:var(--prism-purple)}
-.note:nth-child(4n+4){border-top-color:var(--prism-orange)}
+/* 背景色 */
+.note.bg-red{background:var(--note-red);border-color:#6a2a2a}
+.note.bg-yellow{background:var(--note-yellow);border-color:#5a4800}
+.note.bg-green{background:var(--note-green);border-color:#1a4a28}
+.note.bg-blue{background:var(--note-blue);border-color:#1a3a5a}
+
 .note-meta{display:flex;align-items:center;gap:5px;margin-bottom:5px}
 .note-date{font-size:.65rem;color:var(--muted);flex:1;font-family:monospace}
 .pin-dot{width:7px;height:7px;border-radius:2px;background:var(--prism-yellow);flex-shrink:0}
@@ -85,6 +90,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .arc-header h2{font-size:.78rem;letter-spacing:.1em;font-weight:700;color:var(--muted2)}
 .arc-cnt{background:var(--prism-red);color:#fff;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700}
 .trash-info{font-size:.75rem;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);line-height:1.7}
+
+/* EDIT OVERLAY */
 .edit-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.82);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:12px}
 .edit-overlay.show{display:flex}
 .edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:560px;height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
@@ -106,6 +113,18 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .ea-btn.arc:hover{background:rgba(91,155,213,.1)}
 .ea-btn.del{border-color:rgba(224,92,110,.4);color:var(--prism-red)}
 .ea-btn.del:hover{background:rgba(224,92,110,.1)}
+
+/* 背景色選択 */
+.color-picker{display:flex;gap:5px;align-items:center}
+.cp-dot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:.15s;flex-shrink:0}
+.cp-dot:hover{transform:scale(1.2)}
+.cp-dot.active{border-color:#fff;transform:scale(1.2)}
+.cp-dot.none{background:var(--surface3);border-color:var(--border2)}
+.cp-dot.red{background:#7a2020}
+.cp-dot.yellow{background:#6b5500}
+.cp-dot.green{background:#1a5c2a}
+.cp-dot.blue{background:#1a4a8a}
+
 .overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.85);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:20px}
 .overlay.show{display:flex}
 .modal{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-red);border-radius:10px;padding:20px;width:100%;max-width:300px;box-shadow:var(--shadow)}
@@ -114,13 +133,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end}
 .btn-cancel{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:6px 13px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600}
 .btn-del{background:var(--prism-red);color:#fff;border:none;padding:6px 15px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:9px 14px;border-radius:8px;font-size:.78rem;box-shadow:var(--shadow);display:none;align-items:center;gap:10px;z-index:300;border:1px solid var(--border2);white-space:nowrap}
-#toast.show{display:flex}
-#toast-undo{background:var(--prism-blue);border:none;color:#fff;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
-#install-banner{display:none;background:var(--surface2);border:1px solid rgba(91,155,213,.35);border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:.77rem;align-items:center;gap:10px;color:var(--muted2)}
-#install-banner.show{display:flex}
-#install-btn{background:var(--prism-blue);color:#fff;border:none;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
-#install-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:.9rem}
+
 /* AI校正overlay */
 .ai-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.88);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;padding:20px}
 .ai-overlay.show{display:flex}
@@ -137,6 +150,16 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .ai-run:disabled{opacity:.4;cursor:default}
 .ai-apply{background:var(--prism-green);color:#0d2218;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:.15s}
 .ai-apply:disabled{opacity:.4;cursor:default}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:9px 14px;border-radius:8px;font-size:.78rem;box-shadow:var(--shadow);display:none;align-items:center;gap:10px;z-index:300;border:1px solid var(--border2);white-space:nowrap}
+#toast.show{display:flex}
+#toast-undo{background:var(--prism-blue);border:none;color:#fff;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
+#install-banner{display:none;background:var(--surface2);border:1px solid rgba(91,155,213,.35);border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:.77rem;align-items:center;gap:10px;color:var(--muted2)}
+#install-banner.show{display:flex}
+#install-btn{background:var(--prism-blue);color:#fff;border:none;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.73rem;font-weight:700}
+#install-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:.9rem}
+
+/* ロック画面 */
 #lock-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px}
 #lock-screen.hide{display:none}
 .lock-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -151,7 +174,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
 </head>
 <body>
-<!-- LOCK SCREEN -->
+
 <div id="lock-screen">
   <span class="lock-logo">MEMO</span>
   <div class="lock-box" id="lock-box-enter" style="display:none">
@@ -178,7 +201,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
   <button class="hbtn" onclick="exportJSON()">EXPORT</button>
   <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
-  <button class="hbtn" onclick="lockNow()" title="今すぐロック">🔒</button>
+  <button class="hbtn" onclick="lockNow()">🔒</button>
 </header>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('notes')" id="tab-notes">NOTES <span class="badge" id="badge-notes">0</span></div>
@@ -220,18 +243,19 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </main>
 </div>
 
+<!-- EDIT OVERLAY -->
 <div class="edit-overlay" id="edit-overlay">
   <div class="edit-panel" id="edit-panel">
     <div class="edit-top">
       <span class="edit-label" id="edit-title-label">NEW NOTE</span>
-      <button class="edit-close" onclick="closeEdit(true)">✕ 保存して閉じる</button>
     </div>
     <textarea class="edit-textarea" id="edit-textarea" placeholder="1行目がタイトルになります…"></textarea>
-    <div class="edit-hint">1行目 = タイトル　／　✕ で自動保存　／　外クリックでキャンセル</div>
+    <div class="edit-hint">1行目 = タイトル　／　Ctrl+Enter で保存して閉じる　／　外クリックで保存</div>
     <div class="edit-actions" id="edit-actions"></div>
   </div>
 </div>
 
+<!-- confirm delete -->
 <div class="overlay" id="modal-del">
   <div class="modal">
     <h3>TRASH</h3>
@@ -243,9 +267,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
 </div>
 
-<div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
-
-<!-- AI校正overlay -->
+<!-- AI校正 -->
 <div class="ai-overlay" id="ai-overlay">
   <div class="ai-panel">
     <div class="ai-top">
@@ -261,84 +283,48 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
 </div>
 
+<div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
+
 <script>
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
 let trashTimers={}, toastTimer=null, deferredPrompt=null;
-
-// ===== 簡易ロック機能（SHA-256ハッシュ保存） =====
-async function sha256(str){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-function initLock(){
-  const hash=localStorage.getItem('memo_lock_hash');
-  if(hash){
-    document.getElementById('lock-box-setup').style.display='none';
-    document.getElementById('lock-box-enter').style.display='flex';
-    setTimeout(()=>document.getElementById('lock-input').focus(),100);
-  } else {
-    document.getElementById('lock-box-setup').style.display='flex';
-    document.getElementById('lock-box-enter').style.display='none';
-  }
-}
-async function tryUnlock(){
-  const input=document.getElementById('lock-input').value;
-  const hash=localStorage.getItem('memo_lock_hash');
-  const inputHash=await sha256(input);
-  if(inputHash===hash){
-    document.getElementById('lock-screen').classList.add('hide');
-    document.getElementById('lock-input').value='';
-    document.getElementById('lock-err').textContent='';
-  } else {
-    document.getElementById('lock-err').textContent='パスワードが違います';
-    document.getElementById('lock-input').value='';
-    document.getElementById('lock-input').focus();
-  }
-}
-document.addEventListener('DOMContentLoaded',()=>{
-  const li=document.getElementById('lock-input');
-  if(li)li.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
-  const n2=document.getElementById('lock-new2');
-  if(n2)n2.addEventListener('keydown',e=>{if(e.key==='Enter')setupLock();});
-});
-async function setupLock(){
-  const p1=document.getElementById('lock-new1').value;
-  const p2=document.getElementById('lock-new2').value;
-  if(!p1){document.getElementById('lock-setup-err').textContent='パスワードを入力してください';return}
-  if(p1!==p2){document.getElementById('lock-setup-err').textContent='パスワードが一致しません';return}
-  const hash=await sha256(p1);
-  localStorage.setItem('memo_lock_hash',hash);
-  document.getElementById('lock-screen').classList.add('hide');
-}
-function skipLock(){
-  document.getElementById('lock-screen').classList.add('hide');
-}
-function lockNow(){
-  document.getElementById('lock-screen').classList.remove('hide');
-  initLock();
-}
-function resetLock(){
-  localStorage.removeItem('memo_lock_hash');
-  initLock();
-}
-initLock();
-// ===== ロック機能ここまで =====
+const COLORS=['none','red','yellow','green','blue'];
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`}
 
+// ===== ロック =====
+async function sha256(str){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+function initLock(){
+  const hash=localStorage.getItem('memo_lock_hash');
+  if(hash){document.getElementById('lock-box-setup').style.display='none';document.getElementById('lock-box-enter').style.display='flex';setTimeout(()=>document.getElementById('lock-input').focus(),100);}
+  else{document.getElementById('lock-box-setup').style.display='flex';document.getElementById('lock-box-enter').style.display='none';}
+}
+async function tryUnlock(){
+  const input=document.getElementById('lock-input').value;
+  const hash=localStorage.getItem('memo_lock_hash');
+  if(await sha256(input)===hash){document.getElementById('lock-screen').classList.add('hide');document.getElementById('lock-input').value='';document.getElementById('lock-err').textContent='';}
+  else{document.getElementById('lock-err').textContent='パスワードが違います';document.getElementById('lock-input').value='';document.getElementById('lock-input').focus();}
+}
+async function setupLock(){
+  const p1=document.getElementById('lock-new1').value,p2=document.getElementById('lock-new2').value;
+  if(!p1){document.getElementById('lock-setup-err').textContent='パスワードを入力してください';return}
+  if(p1!==p2){document.getElementById('lock-setup-err').textContent='パスワードが一致しません';return}
+  localStorage.setItem('memo_lock_hash',await sha256(p1));
+  document.getElementById('lock-screen').classList.add('hide');
+}
+function skipLock(){document.getElementById('lock-screen').classList.add('hide')}
+function lockNow(){document.getElementById('lock-screen').classList.remove('hide');initLock()}
+initLock();
+
+// PWA
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').classList.add('show')});
 function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').classList.remove('show')})}
 window.addEventListener('appinstalled',()=>document.getElementById('install-banner').classList.remove('show'));
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{
     reg.update();
-    reg.addEventListener('updatefound',()=>{
-      const nw=reg.installing;
-      nw.addEventListener('statechange',()=>{
-        if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast('アップデートがあります。再読み込みしてください。');
-      });
-    });
+    reg.addEventListener('updatefound',()=>{const nw=reg.installing;nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast('アップデートがあります。再読み込みしてください。');});});
   }).catch(()=>{});
 }
 
@@ -347,52 +333,65 @@ function toggleCompact(){
   document.querySelectorAll('.notes-grid').forEach(el=>{el.classList.toggle('normal',!compact);el.classList.toggle('compact',compact)});
   const b=document.getElementById('compact-btn');b.textContent=compact?'⊟':'⊞';b.classList.toggle('active',compact);
 }
-
 function switchTab(t){
   currentTab=t;
-  ['notes','archive','trash'].forEach(x=>{
-    document.getElementById('pane-'+x).style.display=x===t?'':'none';
-    document.getElementById('tab-'+x).className='tab'+(x===t?' active':'');
-  });
+  ['notes','archive','trash'].forEach(x=>{document.getElementById('pane-'+x).style.display=x===t?'':'none';document.getElementById('tab-'+x).className='tab'+(x===t?' active':'');});
   if(t==='archive')renderArchive();else if(t==='trash')renderTrash();else renderNotes();
 }
 
+// 背景色ピッカーHTML
+function colorPickerHTML(currentBg){
+  const labels={none:'なし',red:'赤',yellow:'黄',green:'緑',blue:'青'};
+  return`<div class="color-picker">`+COLORS.map(c=>`<div class="cp-dot ${c}${currentBg===c?' active':''}" title="${labels[c]}" onclick="setBgColor('${c}')"></div>`).join('')+`</div>`;
+}
+
 function buildActions(n,isArc,isTrsh){
-  const id=n?n.id:'';
   let acts='';
   if(!isArc&&!isTrsh&&n){
-    acts+=`<button class="ea-btn pin" onclick="togglePin('${id}')">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
-    acts+=`<button class="ea-btn arc" onclick="archiveNote('${id}')">📦 保存</button>`;
-    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${id}')">🗑 削除</button>`;
+    acts+=colorPickerHTML(n.bg||'none');
+    acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}')">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
+    acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}')">📦 保存</button>`;
+    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
   } else if(!isArc&&!isTrsh&&!n){
+    acts+=colorPickerHTML('none');
     acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
     acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
   } else if(isArc&&n){
-    acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${id}')">↩ 戻す</button>`;
-    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}')">↩ 戻す</button>`;
+    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
   } else if(isTrsh&&n){
-    acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${id}');forceCloseEdit()">↩ 復元</button>`;
-    acts+=`<button class="ea-btn del" onclick="permDelete('${id}');forceCloseEdit()">✕ 完全削除</button>`;
+    acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');forceCloseEdit()">↩ 復元</button>`;
+    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">✕ 完全削除</button>`;
   }
   acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
-  acts+=`<button class="ea-btn ai" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openAI()">✨ 校正</button>`;
+  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openAI()">✨ 校正</button>`;
   return acts;
 }
+
+// 背景色変更（保存もする）
+function setBgColor(color){
+  document.querySelectorAll('.cp-dot').forEach(d=>d.classList.toggle('active',d.classList.contains(color)));
+  document.querySelector('.edit-panel').dataset.bg=color;
+  // 既存メモなら即保存
+  if(editId){
+    const n=notes.find(x=>x.id===editId);
+    if(n){n.bg=color;persist();renderAll();}
+  }
+}
+function getCurrentBg(){return document.querySelector('.edit-panel').dataset.bg||'none'}
 
 function closeEdit(save=true){
   if(save){const txt=document.getElementById('edit-textarea').value.trim();if(txt)_commitSave();}
   forceCloseEdit();
 }
-function forceCloseEdit(){
-  document.getElementById('edit-overlay').classList.remove('show');
-  editId=null;
-}
+function forceCloseEdit(){document.getElementById('edit-overlay').classList.remove('show');editId=null;delete document.querySelector('.edit-panel').dataset.bg;}
 
 function openNew(){
   editId=null;
   document.getElementById('edit-title-label').textContent='NEW NOTE';
   document.getElementById('edit-textarea').value='';
   document.querySelector('.edit-panel').style.borderTopColor='var(--prism-blue)';
+  delete document.querySelector('.edit-panel').dataset.bg;
   document.getElementById('edit-actions').innerHTML=buildActions(null,false,false);
   document.getElementById('edit-overlay').classList.add('show');
   setTimeout(()=>document.getElementById('edit-textarea').focus(),50);
@@ -401,64 +400,43 @@ function openEdit(id){
   const all=[...notes,...trash];
   const nn=all.find(x=>x.id===id);if(!nn)return;
   editId=id;
-  const isArc=nn.archived, isTrsh=!!nn.trashedAt&&!notes.find(x=>x.id===id);
+  const isArc=nn.archived,isTrsh=!!nn.trashedAt&&!notes.find(x=>x.id===id);
   document.getElementById('edit-title-label').textContent='EDIT NOTE';
   document.getElementById('edit-textarea').value=nn.text||'';
-  const colors=['var(--prism-blue)','var(--prism-green)','var(--prism-purple)','var(--prism-orange)'];
-  const idx=notes.findIndex(x=>x.id===id);
-  document.querySelector('.edit-panel').style.borderTopColor=nn.pinned?'var(--prism-yellow)':colors[Math.abs(idx)%4]||'var(--prism-blue)';
+  document.querySelector('.edit-panel').style.borderTopColor='var(--prism-blue)';
+  document.querySelector('.edit-panel').dataset.bg=nn.bg||'none';
   document.getElementById('edit-actions').innerHTML=buildActions(nn,isArc,isTrsh);
   document.getElementById('edit-overlay').classList.add('show');
   setTimeout(()=>{const ta=document.getElementById('edit-textarea');ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;},50);
 }
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 
-// 内部保存処理（画面を閉じない）
 function _commitSave(){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
+  const bg=getCurrentBg();
   if(editId){
     const n=[...notes,...trash].find(x=>x.id===editId);
-    if(n){n.text=txt;n.updated=Date.now()}
+    if(n){n.text=txt;n.updated=Date.now();n.bg=bg;}
   } else {
-    notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:false});
+    notes.unshift({id:uid(),text:txt,bg,created:Date.now(),updated:Date.now(),archived:false,pinned:false});
   }
   persist();renderAll();
 }
 function saveAndPin(){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
-  notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:false,pinned:true});
+  notes.unshift({id:uid(),text:txt,bg:getCurrentBg(),created:Date.now(),updated:Date.now(),archived:false,pinned:true});
   forceCloseEdit();persist();renderAll();showToast('ピン留めで保存しました');
 }
 function saveAndArchive(){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
-  notes.unshift({id:uid(),text:txt,created:Date.now(),updated:Date.now(),archived:true,archivedAt:Date.now(),pinned:false});
+  notes.unshift({id:uid(),text:txt,bg:getCurrentBg(),created:Date.now(),updated:Date.now(),archived:true,archivedAt:Date.now(),pinned:false});
   forceCloseEdit();persist();renderAll();showToast('アーカイブで保存しました');
 }
 
-function togglePin(id){
-  const n=notes.find(x=>x.id===id);if(!n)return;
-  // 現在の編集内容を先に保存
-  _commitSave();
-  n.pinned=!n.pinned;persist();renderAll();forceCloseEdit();
-}
-function archiveNote(id){
-  _commitSave();
-  const n=notes.find(x=>x.id===id);if(!n)return;
-  n.archived=true;n.archivedAt=Date.now();persist();renderAll();forceCloseEdit();
-}
-function unarchiveNote(id){
-  _commitSave();
-  const n=notes.find(x=>x.id===id);if(!n)return;
-  n.archived=false;delete n.archivedAt;persist();renderAll();forceCloseEdit();
-}
-
-// 削除：編集画面を閉じてからモーダルを開く
-function deleteFromEdit(id){
-  document.getElementById('edit-overlay').classList.remove('show');
-  editId=null;
-  deleteId=id;
-  document.getElementById('modal-del').classList.add('show');
-}
+function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;_commitSave();n.pinned=!n.pinned;persist();renderAll();forceCloseEdit();}
+function archiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=true;n.archivedAt=Date.now();persist();renderAll();forceCloseEdit();}
+function unarchiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=false;delete n.archivedAt;persist();renderAll();forceCloseEdit();}
+function deleteFromEdit(id){document.getElementById('edit-overlay').classList.remove('show');editId=null;deleteId=id;document.getElementById('modal-del').classList.add('show');}
 function askDelete(id){deleteId=id;document.getElementById('modal-del').classList.add('show')}
 function confirmDelete(){
   const n=notes.find(x=>x.id===deleteId);if(!n){closeModal('modal-del');return}
@@ -471,8 +449,7 @@ function confirmDelete(){
 function restoreFromTrash(id){
   const n=trash.find(x=>x.id===id);if(!n)return;
   clearTimeout(trashTimers[id]);delete trashTimers[id];
-  trash=trash.filter(x=>x.id!==id);
-  n.archived=false;delete n.trashedAt;
+  trash=trash.filter(x=>x.id!==id);n.archived=false;delete n.trashedAt;
   notes.unshift(n);persist();renderAll();
 }
 function undoTrash(){if(deleteId)restoreFromTrash(deleteId);hideToast()}
@@ -480,9 +457,8 @@ function permDelete(id){clearTimeout(trashTimers[id]);trash=trash.filter(x=>x.id
 
 function copyNote(){
   const txt=document.getElementById('edit-textarea').value;if(!txt)return;
-  if(navigator.clipboard&&window.isSecureContext){
-    navigator.clipboard.writeText(txt).then(()=>showToast('コピーしました')).catch(()=>fallbackCopy(txt));
-  } else fallbackCopy(txt);
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(()=>showToast('コピーしました')).catch(()=>fallbackCopy(txt));}
+  else fallbackCopy(txt);
 }
 function fallbackCopy(txt){
   const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
@@ -495,7 +471,6 @@ function fallbackCopy(txt){
 const WORKER_URL='https://memo-api.ksey-fgljfsmg7475219t.workers.dev';
 const APP_TOKEN='memo2025secure';
 let aiResult='';
-
 function openAI(){
   const txt=document.getElementById('edit-textarea').value.trim();
   if(!txt){showToast('テキストを入力してください');return}
@@ -508,33 +483,18 @@ function openAI(){
 function closeAI(){document.getElementById('ai-overlay').classList.remove('show')}
 async function runAI(){
   const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
-  const res=document.getElementById('ai-result');
-  const runBtn=document.getElementById('ai-run');
-  const applyBtn=document.getElementById('ai-apply');
-  res.textContent='処理中…';res.classList.add('loading');
-  runBtn.disabled=true;applyBtn.disabled=true;aiResult='';
+  const res=document.getElementById('ai-result'),runBtn=document.getElementById('ai-run'),applyBtn=document.getElementById('ai-apply');
+  res.textContent='処理中…';res.classList.add('loading');runBtn.disabled=true;applyBtn.disabled=true;aiResult='';
   try{
-    const r=await fetch(WORKER_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-App-Token':APP_TOKEN},
-      body:JSON.stringify({text:txt})
-    });
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':APP_TOKEN},body:JSON.stringify({text:txt})});
     const data=await r.json();
     aiResult=data.result||'';
-    res.textContent=aiResult||'結果が取得できませんでした';
-    res.classList.remove('loading');
+    res.textContent=aiResult||'結果が取得できませんでした';res.classList.remove('loading');
     applyBtn.disabled=!aiResult;
-  }catch(e){
-    res.textContent='エラーが発生しました。接続を確認してください。';
-    res.classList.remove('loading');
-  }
+  }catch(e){res.textContent='エラーが発生しました。接続を確認してください。';res.classList.remove('loading');}
   runBtn.disabled=false;
 }
-function applyAI(){
-  if(!aiResult)return;
-  document.getElementById('edit-textarea').value=aiResult;
-  closeAI();showToast('校正結果を適用しました');
-}
+function applyAI(){if(!aiResult)return;document.getElementById('edit-textarea').value=aiResult;closeAI();showToast('校正結果を適用しました');}
 
 function showToast(msg){clearTimeout(toastTimer);document.getElementById('toast-msg').textContent=msg;document.getElementById('toast').classList.add('show');toastTimer=setTimeout(hideToast,5000);}
 function hideToast(){document.getElementById('toast').classList.remove('show')}
@@ -562,7 +522,8 @@ function makeCard(n,opts={}){
   else if(isArc){extra=`<span class="arc-badge">archived</span>`;}
   const drag=(!isArc&&!isTrsh)?`draggable="true" ondragstart="onDragStart(event,'${n.id}')" ondragend="onDragEnd(event,'${n.id}')" ondragover="onDragOver(event,'${n.id}')" ondrop="onDrop(event,'${n.id}')"`:''
   const pin=n.pinned&&!isArc&&!isTrsh?`<span class="pin-dot"></span>`:'';
-  return`<div class="note${n.pinned&&!isArc&&!isTrsh?' pinned':''}" data-id="${n.id}" ${drag} onclick="openEdit('${n.id}')">
+  const bgClass=n.bg&&n.bg!=='none'?` bg-${n.bg}`:'';
+  return`<div class="note${n.pinned&&!isArc&&!isTrsh?' pinned':''}${bgClass}" data-id="${n.id}" ${drag} onclick="openEdit('${n.id}')">
     <div class="note-meta">${pin}<span class="note-date">${ts}</span>${extra}</div>
     ${title?`<div class="note-title">${title}</div>`:''}
     ${body?`<div class="note-body">${body}</div>`:''}
@@ -618,22 +579,23 @@ function load(){
 function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`memo_${new Date().toISOString().slice(0,10)}.json`;a.click();}
 function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.notes&&Array.isArray(d.notes)){notes=d.notes;trash=d.trash||[];persist();renderAll();alert(`${notes.length}件読み込みました`)}else if(Array.isArray(d)){notes=d;trash=[];persist();renderAll();alert(`${d.length}件読み込みました`)}else alert('形式が正しくありません')}catch{alert('読み込みに失敗しました')}};r.readAsText(f);}
 
-function showTodayDate(){
-  // アプリのアップデート日時（コード変更時に手動更新）
-  document.getElementById('today-date').textContent='Updated: 2026.07.01 11:00';
-}
+function showTodayDate(){document.getElementById('today-date').textContent='Updated: 2026.08.01 09:00';}
 
-// 編集画面の外クリックでキャンセル
+// 外クリックで保存して閉じる
 document.getElementById('edit-overlay').addEventListener('click',e=>{
-  if(e.target===document.getElementById('edit-overlay'))closeEdit(false);
+  if(e.target===document.getElementById('edit-overlay'))closeEdit(true);
 });
 
 document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='n'&&!document.getElementById('edit-overlay').classList.contains('show')){e.preventDefault();openNew()}
-  if(e.key==='Escape'){closeEdit(false);closeModal('modal-del')}
+  if(e.key==='Escape'){closeEdit(true);closeModal('modal-del');closeAI()}
 });
 document.getElementById('edit-textarea').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();closeEdit(true)}
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  const li=document.getElementById('lock-input');if(li)li.addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+  const n2=document.getElementById('lock-new2');if(n2)n2.addEventListener('keydown',e=>{if(e.key==='Enter')setupLock();});
 });
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
