@@ -581,9 +581,11 @@ function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileRe
 
 function showTodayDate(){document.getElementById('today-date').textContent='Updated: 2026.08.01 09:00';}
 
-// 外クリックで保存して閉じる
+// 外クリックで保存して閉じる（ドラッグ誤作動防止）
+let _mouseDownTarget=null;
+document.getElementById('edit-overlay').addEventListener('mousedown',e=>{_mouseDownTarget=e.target;});
 document.getElementById('edit-overlay').addEventListener('click',e=>{
-  if(e.target===document.getElementById('edit-overlay'))closeEdit(true);
+  if(e.target===document.getElementById('edit-overlay')&&_mouseDownTarget===document.getElementById('edit-overlay'))closeEdit(true);
 });
 
 document.addEventListener('keydown',e=>{
