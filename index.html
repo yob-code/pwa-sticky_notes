@@ -303,7 +303,7 @@ function initLock(){
 async function tryUnlock(){
   const input=document.getElementById('lock-input').value;
   const hash=localStorage.getItem('memo_lock_hash');
-  if(await sha256(input)===hash){document.getElementById('lock-screen').classList.add('hide');document.getElementById('lock-input').value='';document.getElementById('lock-err').textContent='';}
+  if(await sha256(input)===hash){document.getElementById('lock-screen').classList.add('hide');document.getElementById('lock-input').value='';document.getElementById('lock-err').textContent='';syncOnUnlock();}
   else{document.getElementById('lock-err').textContent='パスワードが違います';document.getElementById('lock-input').value='';document.getElementById('lock-input').focus();}
 }
 async function setupLock(){
@@ -312,6 +312,7 @@ async function setupLock(){
   if(p1!==p2){document.getElementById('lock-setup-err').textContent='パスワードが一致しません';return}
   localStorage.setItem('memo_lock_hash',await sha256(p1));
   document.getElementById('lock-screen').classList.add('hide');
+  syncOnUnlock();
 }
 function skipLock(){document.getElementById('lock-screen').classList.add('hide')}
 function lockNow(){document.getElementById('lock-screen').classList.remove('hide');initLock()}
@@ -443,7 +444,7 @@ function confirmDelete(){
   notes=notes.filter(x=>x.id!==deleteId);
   trash.push({...n,trashedAt:Date.now()});
   clearTimeout(trashTimers[deleteId]);
-  trashTimers[deleteId]=setTimeout(()=>{trash=trash.filter(x=>x.id!==deleteId);if(currentTab==='trash')renderTrash();updateBadges();persist();},30000);
+  trashTimers[deleteId]=setTimeout(()=>{markDeleted(deleteId);trash=trash.filter(x=>x.id!==deleteId);if(currentTab==='trash')renderTrash();updateBadges();persist();},30000);
   closeModal('modal-del');persist();renderAll();showToast('ゴミ箱に移しました');
 }
 function restoreFromTrash(id){
@@ -453,7 +454,7 @@ function restoreFromTrash(id){
   notes.unshift(n);persist();renderAll();
 }
 function undoTrash(){if(deleteId)restoreFromTrash(deleteId);hideToast()}
-function permDelete(id){clearTimeout(trashTimers[id]);trash=trash.filter(x=>x.id!==id);persist();renderTrash();updateBadges();}
+function permDelete(id){clearTimeout(trashTimers[id]);markDeleted(id);trash=trash.filter(x=>x.id!==id);persist();renderTrash();updateBadges();}
 
 function copyNote(){
   const txt=document.getElementById('edit-textarea').value;if(!txt)return;
@@ -470,6 +471,74 @@ function fallbackCopy(txt){
 // AI校正
 const WORKER_URL='https://memo-api.ksey-fgljfsmg7475219t.workers.dev';
 const APP_TOKEN='memo2025secure';
+
+// ===== 端末間同期 =====
+const SYNC_URL='https://memo-sync.ksey-fgljfsmg7475219t.workers.dev';
+let pendingDeletes=[]; // 完全削除の墓標（次回同期時にサーバーへ伝える）
+let syncing=false;
+
+function getSyncToken(){return localStorage.getItem('memo_lock_hash');}
+
+function rowToLocal(r){
+  return{id:r.id,text:r.text,bg:r.bg||'none',created:r.created,updated:r.updated,
+    archived:!!r.archived,archivedAt:r.archivedAt||undefined,
+    pinned:!!r.pinned,trashedAt:r.trashedAt||undefined};
+}
+
+function mergeServerRows(rows){
+  const map=new Map([...notes,...trash].map(n=>[n.id,n]));
+  for(const r of rows){
+    if(r.deleted){map.delete(r.id);continue;}
+    const local=map.get(r.id);
+    const remoteTs=Math.max(r.updated||0,r.trashedAt||0);
+    const localTs=local?Math.max(local.updated||0,local.trashedAt||0):-1;
+    if(!local||remoteTs>localTs)map.set(r.id,rowToLocal(r));
+  }
+  const merged=[...map.values()];
+  notes=merged.filter(n=>!n.trashedAt);
+  trash=merged.filter(n=>!!n.trashedAt);
+  trash.forEach(n=>{
+    if(trashTimers[n.id])return;
+    const rem=30000-(Date.now()-(n.trashedAt||0));
+    if(rem>0)trashTimers[n.id]=setTimeout(()=>{trash=trash.filter(x=>x.id!==n.id);if(currentTab==='trash')renderTrash();updateBadges();persist(false);},rem);
+    else trash=trash.filter(x=>x.id!==n.id);
+  });
+}
+
+async function syncPull(){
+  const token=getSyncToken();if(!token)return;
+  try{
+    const res=await fetch(SYNC_URL+'/notes',{headers:{'X-App-Token':token}});
+    if(!res.ok)return;
+    const rows=await res.json();
+    mergeServerRows(rows);
+    persist(false);renderAll();
+  }catch(e){/* オフライン等は無視 */}
+}
+
+async function syncPush(){
+  const token=getSyncToken();if(!token)return;
+  if(syncing)return;syncing=true;
+  const payload=[...notes,...trash].map(n=>({
+    id:n.id,text:n.text,bg:n.bg||'none',created:n.created,updated:n.updated,
+    archived:n.archived?1:0,archivedAt:n.archivedAt||null,
+    pinned:n.pinned?1:0,trashedAt:n.trashedAt||null,deleted:0
+  }));
+  const tombstones=pendingDeletes.map(d=>({
+    id:d.id,text:'',bg:'none',created:d.updated,updated:d.updated,
+    archived:0,archivedAt:null,pinned:0,trashedAt:null,deleted:1
+  }));
+  try{
+    await fetch(SYNC_URL+'/notes/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({notes:[...payload,...tombstones]})});
+    pendingDeletes=[];
+  }catch(e){/* オフライン等は無視、次回同期時に再送 */}
+  syncing=false;
+}
+
+let pushTimer=null;
+function schedulePush(){clearTimeout(pushTimer);pushTimer=setTimeout(syncPush,500);}
+function markDeleted(id){pendingDeletes.push({id,updated:Date.now()});schedulePush();}
+async function syncOnUnlock(){await syncPull();await syncPush();}
 let aiResult='';
 function openAI(){
   const txt=document.getElementById('edit-textarea').value.trim();
@@ -568,12 +637,12 @@ function updateStorage(){
     bar.className='storage-bar'+(pct>=95?' danger':pct>=80?' warn':'');
   }catch(e){}
 }
-function persist(){try{localStorage.setItem('sn3_notes',JSON.stringify(notes));localStorage.setItem('sn3_trash',JSON.stringify(trash));updateStorage();}catch(e){}}
+function persist(push=true){try{localStorage.setItem('sn3_notes',JSON.stringify(notes));localStorage.setItem('sn3_trash',JSON.stringify(trash));updateStorage();}catch(e){}if(push)schedulePush();}
 function load(){
   try{
     const n=localStorage.getItem('sn3_notes'),t=localStorage.getItem('sn3_trash');
     if(n)notes=JSON.parse(n);
-    if(t){trash=JSON.parse(t);trash.forEach(n=>{const rem=30000-(Date.now()-(n.trashedAt||0));if(rem>0){trashTimers[n.id]=setTimeout(()=>{trash=trash.filter(x=>x.id!==n.id);if(currentTab==='trash')renderTrash();updateBadges();persist();},rem)}else trash=trash.filter(x=>x.id!==n.id);})}
+    if(t){trash=JSON.parse(t);trash.forEach(n=>{const rem=30000-(Date.now()-(n.trashedAt||0));if(rem>0){trashTimers[n.id]=setTimeout(()=>{markDeleted(n.id);trash=trash.filter(x=>x.id!==n.id);if(currentTab==='trash')renderTrash();updateBadges();persist();},rem)}else trash=trash.filter(x=>x.id!==n.id);})}
   }catch(e){}
 }
 function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`memo_${new Date().toISOString().slice(0,10)}.json`;a.click();}
