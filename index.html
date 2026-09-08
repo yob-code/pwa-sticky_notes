@@ -97,6 +97,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .edit-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-blue);border-radius:10px;width:100%;max-width:560px;height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
 .edit-top{flex-shrink:0;padding:12px 14px 0;display:flex;align-items:center;gap:8px}
 .edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
+.edit-save-btn{background:var(--prism-green);color:#0d2218;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:700;flex-shrink:0}
+.edit-save-btn:active{filter:brightness(.9)}
 .edit-close{background:none;border:1px solid var(--border2);color:var(--muted2);cursor:pointer;font-size:.72rem;padding:4px 10px;border-radius:5px;transition:.15s;font-weight:600}
 .edit-close:hover{background:var(--surface3);color:var(--text)}
 .edit-textarea{flex:1;width:100%;min-height:0;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none;overflow-y:auto}
@@ -233,9 +235,10 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   <div class="edit-panel" id="edit-panel">
     <div class="edit-top">
       <span class="edit-label" id="edit-title-label">NEW NOTE</span>
+      <button class="edit-save-btn" onclick="closeEdit(true)">✓ 完了</button>
     </div>
     <textarea class="edit-textarea" id="edit-textarea" placeholder="1行目がタイトルになります…"></textarea>
-    <div class="edit-hint">1行目 = タイトル　／　Ctrl+Enter で保存して閉じる　／　外クリックで保存</div>
+    <div class="edit-hint">1行目 = タイトル　／　Ctrl+Enter または「✓ 完了」で保存して閉じる</div>
     <div class="edit-actions" id="edit-actions"></div>
   </div>
 </div>
@@ -334,7 +337,6 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');forceCloseEdit()">↩ 復元</button>`;
     acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">✕ 完全削除</button>`;
   }
-  acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
   acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">✨ AI連携</button>`;
   return acts;
 }
