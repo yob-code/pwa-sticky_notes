@@ -38,7 +38,7 @@ header{flex-shrink:0;background:var(--surface);padding:0 16px;height:50px;displa
 .tabs{flex-shrink:0;display:flex;background:#0e0d16;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--border)}
 .tab{padding:7px 14px;color:var(--muted);cursor:pointer;font-size:.75rem;letter-spacing:.07em;font-weight:600;border-radius:6px 6px 0 0;transition:.15s;white-space:nowrap;border:1px solid transparent;border-bottom:none}
 .tab:hover{color:var(--muted2);background:var(--surface)}
-.tab.active{color:var(--text);background:var(--surface);border-color:var(--border2)}
+.tab.active{color:var(--text);background:var(--surface);border-color:var(--border2);box-shadow:inset 0 -3px 0 var(--prism-blue)}
 .badge{border-radius:5px;padding:1px 6px;font-size:.65rem;margin-left:4px;font-weight:700}
 .tab.active .badge{background:var(--prism-blue);color:#fff}
 .tab:not(.active) .badge{background:var(--surface3);color:var(--muted2)}
@@ -62,7 +62,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .notes-grid.compact{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
 
 /* カード — ランダムボーダーなし、背景色で区別 */
-.note{border-radius:8px;padding:12px 13px;background:var(--surface);border:1px solid var(--border2);transition:border-color .15s,transform .15s,box-shadow .15s;display:flex;flex-direction:column;cursor:pointer;user-select:none;min-height:90px}
+.note{border-radius:8px;padding:12px 13px;background:var(--surface);border:1px solid var(--border2);border-left:3px solid var(--prism-blue);transition:border-color .15s,transform .15s,box-shadow .15s;display:flex;flex-direction:column;cursor:pointer;user-select:none;min-height:90px}
 .note:hover{box-shadow:0 0 0 1px rgba(91,155,213,.2),0 6px 20px rgba(0,0,0,.4);transform:translateY(-2px)}
 .note.pinned{border-color:rgba(232,201,74,.4)}
 .note.pinned:hover{border-color:var(--prism-yellow)}
@@ -87,7 +87,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .section-label::after{content:'';flex:1;height:1px;background:var(--border2)}
 .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:.85rem;grid-column:1/-1;line-height:2.2}
 .arc-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.arc-header h2{font-size:.78rem;letter-spacing:.1em;font-weight:700;color:var(--muted2)}
+.arc-header h2{font-size:.78rem;letter-spacing:.1em;font-weight:700;color:var(--muted2);border-bottom:2px solid var(--prism-blue);padding-bottom:6px;display:inline-block}
 .arc-cnt{background:var(--prism-red);color:#fff;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700}
 .trash-info{font-size:.75rem;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);line-height:1.7}
 
@@ -180,7 +180,6 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 <header>
   <span class="logo">MEMO</span>
-  <span class="ver" id="today-date" style="margin-left:-6px"></span>
   <div class="storage-bar" id="storage-bar">
     <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
     <span class="pct" id="bar-pct">0%</span>
@@ -607,7 +606,6 @@ function load(){
 function exportJSON(){const blob=new Blob([JSON.stringify({notes,trash},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`memo_${new Date().toISOString().slice(0,10)}.json`;a.click();}
 function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.notes&&Array.isArray(d.notes)){notes=d.notes;trash=d.trash||[];persist();renderAll();alert(`${notes.length}件読み込みました`)}else if(Array.isArray(d)){notes=d;trash=[];persist();renderAll();alert(`${d.length}件読み込みました`)}else alert('形式が正しくありません')}catch{alert('読み込みに失敗しました')}};r.readAsText(f);}
 
-function showTodayDate(){document.getElementById('today-date').textContent='Updated: 2026.08.01 09:00';}
 
 // 外クリックで保存して閉じる（ドラッグ誤作動防止）
 let _mouseDownTarget=null;
@@ -629,7 +627,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
-load();renderAll();updateStorage();showTodayDate();
+load();renderAll();updateStorage();
 </script>
 </body>
 </html>
