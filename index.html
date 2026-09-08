@@ -335,7 +335,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">✕ 完全削除</button>`;
   }
   acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
-  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">✨ 校正</button>`;
+  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">✨ AI連携</button>`;
   return acts;
 }
 
