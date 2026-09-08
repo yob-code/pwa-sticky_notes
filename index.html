@@ -135,21 +135,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .btn-del{background:var(--prism-red);color:#fff;border:none;padding:6px 15px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700}
 
 /* AI校正overlay */
-.ai-overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.88);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;padding:20px}
-.ai-overlay.show{display:flex}
-.ai-panel{background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--prism-purple);border-radius:10px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
-.ai-top{padding:12px 14px 0;display:flex;align-items:center;gap:8px}
-.ai-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--prism-purple);flex:1}
-.ai-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 6px;border-radius:5px;line-height:1;transition:.15s}
-.ai-close:hover{background:var(--surface3);color:var(--text)}
-.ai-result{margin:12px 14px;min-height:120px;max-height:45vh;overflow-y:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:10px 12px;font-size:.86rem;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word}
-.ai-result.loading{color:var(--muted);font-style:italic}
-.ai-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
-.ai-run{background:var(--prism-purple);color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:.15s}
-.ai-run:hover{filter:brightness(1.2)}
-.ai-run:disabled{opacity:.4;cursor:default}
-.ai-apply{background:var(--prism-green);color:#0d2218;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700;transition:.15s}
-.ai-apply:disabled{opacity:.4;cursor:default}
+
 
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:9px 14px;border-radius:8px;font-size:.78rem;box-shadow:var(--shadow);display:none;align-items:center;gap:10px;z-index:300;border:1px solid var(--border2);white-space:nowrap}
 #toast.show{display:flex}
@@ -267,22 +253,6 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
 </div>
 
-<!-- AI校正 -->
-<div class="ai-overlay" id="ai-overlay">
-  <div class="ai-panel">
-    <div class="ai-top">
-      <span class="ai-label">✨ 文体を整える</span>
-      <button class="ai-close" onclick="closeAI()">✕</button>
-    </div>
-    <div class="ai-result" id="ai-result">「実行」を押すと文章を整えます。</div>
-    <div class="ai-actions">
-      <button class="btn-cancel" onclick="closeAI()">キャンセル</button>
-      <button class="ai-run" id="ai-run" onclick="runAI()">▶ 実行</button>
-      <button class="ai-apply" id="ai-apply" onclick="applyAI()" disabled>✓ 適用</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo" onclick="undoTrash()">元に戻す</button></div>
 
 <script>
@@ -357,6 +327,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=colorPickerHTML('none');
     acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
     acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
+    acts+=`<button class="ea-btn del" onclick="discardNew()">🗑 破棄</button>`;
   } else if(isArc&&n){
     acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}')">↩ 戻す</button>`;
     acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
@@ -365,7 +336,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">✕ 完全削除</button>`;
   }
   acts+=`<button class="ea-btn" onclick="copyNote()">📋 コピー</button>`;
-  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openAI()">✨ 校正</button>`;
+  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">✨ 校正</button>`;
   return acts;
 }
 
@@ -433,6 +404,7 @@ function saveAndArchive(){
   notes.unshift({id:uid(),text:txt,bg:getCurrentBg(),created:Date.now(),updated:Date.now(),archived:true,archivedAt:Date.now(),pinned:false});
   forceCloseEdit();persist();renderAll();showToast('アーカイブで保存しました');
 }
+function discardNew(){document.getElementById('edit-textarea').value='';forceCloseEdit();showToast('破棄しました');}
 
 function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;_commitSave();n.pinned=!n.pinned;persist();renderAll();forceCloseEdit();}
 function archiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=true;n.archivedAt=Date.now();persist();renderAll();forceCloseEdit();}
@@ -467,10 +439,14 @@ function fallbackCopy(txt){
   try{document.execCommand('copy');showToast('コピーしました');}catch(e){showToast('コピー失敗');}
   document.body.removeChild(ta);
 }
-
-// AI校正
-const WORKER_URL='https://memo-api.ksey-fgljfsmg7475219t.workers.dev';
-const APP_TOKEN='memo2025secure';
+const COMPANY_AI_URL='https://auth.userlocal.jp/login?return_url=https%3A%2F%2Fsupport-web.userlocal.jp%2Fja%2Fgpts%2Fea53c0ab9d24a7752b0c&service=ulgpt';
+function openCompanyAI(){
+  const txt=document.getElementById('edit-textarea').value;
+  if(!txt){showToast('テキストを入力してください');return;}
+  const doOpen=()=>{window.open(COMPANY_AI_URL,'_blank');showToast('コピーしました。貼り付けてください');};
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(doOpen).catch(()=>{fallbackCopy(txt);doOpen();});}
+  else{fallbackCopy(txt);doOpen();}
+}
 
 // ===== 端末間同期 =====
 const SYNC_URL='https://memo-sync.ksey-fgljfsmg7475219t.workers.dev';
@@ -539,31 +515,14 @@ let pushTimer=null;
 function schedulePush(){clearTimeout(pushTimer);pushTimer=setTimeout(syncPush,500);}
 function markDeleted(id){pendingDeletes.push({id,updated:Date.now()});schedulePush();}
 async function syncOnUnlock(){await syncPull();await syncPush();}
-let aiResult='';
-function openAI(){
-  const txt=document.getElementById('edit-textarea').value.trim();
-  if(!txt){showToast('テキストを入力してください');return}
-  document.getElementById('ai-result').textContent='「実行」を押すと文章を整えます。';
-  document.getElementById('ai-result').classList.remove('loading');
-  document.getElementById('ai-apply').disabled=true;
-  aiResult='';
-  document.getElementById('ai-overlay').classList.add('show');
-}
-function closeAI(){document.getElementById('ai-overlay').classList.remove('show')}
-async function runAI(){
-  const txt=document.getElementById('edit-textarea').value.trim();if(!txt)return;
-  const res=document.getElementById('ai-result'),runBtn=document.getElementById('ai-run'),applyBtn=document.getElementById('ai-apply');
-  res.textContent='処理中…';res.classList.add('loading');runBtn.disabled=true;applyBtn.disabled=true;aiResult='';
-  try{
-    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':APP_TOKEN},body:JSON.stringify({text:txt})});
-    const data=await r.json();
-    aiResult=data.result||'';
-    res.textContent=aiResult||'結果が取得できませんでした';res.classList.remove('loading');
-    applyBtn.disabled=!aiResult;
-  }catch(e){res.textContent='エラーが発生しました。接続を確認してください。';res.classList.remove('loading');}
-  runBtn.disabled=false;
-}
-function applyAI(){if(!aiResult)return;document.getElementById('edit-textarea').value=aiResult;closeAI();showToast('校正結果を適用しました');}
+function isUnlocked(){return document.getElementById('lock-screen').classList.contains('hide');}
+
+// ===== 選択肢A: 復帰時＋定期的な自動同期 =====
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&isUnlocked())syncOnUnlock();
+});
+window.addEventListener('focus',()=>{if(isUnlocked())syncOnUnlock();});
+setInterval(()=>{if(isUnlocked())syncOnUnlock();},30000);
 
 function showToast(msg){clearTimeout(toastTimer);document.getElementById('toast-msg').textContent=msg;document.getElementById('toast').classList.add('show');toastTimer=setTimeout(hideToast,5000);}
 function hideToast(){document.getElementById('toast').classList.remove('show')}
@@ -659,7 +618,7 @@ document.getElementById('edit-overlay').addEventListener('click',e=>{
 
 document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='n'&&!document.getElementById('edit-overlay').classList.contains('show')){e.preventDefault();openNew()}
-  if(e.key==='Escape'){closeEdit(true);closeModal('modal-del');closeAI()}
+  if(e.key==='Escape'){closeEdit(true);closeModal('modal-del')}
 });
 document.getElementById('edit-textarea').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();closeEdit(true)}
