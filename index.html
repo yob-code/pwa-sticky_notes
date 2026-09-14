@@ -331,6 +331,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
     acts+=`<button class="ea-btn del" onclick="discardNew()">🗑 破棄</button>`;
   } else if(isArc&&n){
+    acts+=colorPickerHTML(n.bg||'none');
     acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}')">↩ 戻す</button>`;
     acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
   } else if(isTrsh&&n){
