@@ -99,6 +99,9 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .edit-label{font-size:.68rem;letter-spacing:.12em;font-weight:700;color:var(--muted);flex:1}
 .edit-save-btn{background:var(--prism-green);color:#0d2218;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:700;flex-shrink:0}
 .edit-save-btn:active{filter:brightness(.9)}
+.edit-top-btns{display:flex;gap:6px;flex-shrink:0}
+.edit-cancel-btn{background:none;color:var(--muted2);border:1px solid var(--border2);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:700;flex-shrink:0}
+.edit-cancel-btn:active{background:var(--surface3)}
 .edit-close{background:none;border:1px solid var(--border2);color:var(--muted2);cursor:pointer;font-size:.72rem;padding:4px 10px;border-radius:5px;transition:.15s;font-weight:600}
 .edit-close:hover{background:var(--surface3);color:var(--text)}
 .edit-textarea{flex:1;width:100%;min-height:0;padding:13px 16px;border:none;background:transparent;color:var(--text);font-size:.93rem;line-height:1.75;font-family:inherit;resize:none;outline:none;overflow-y:auto}
@@ -246,10 +249,10 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   <div class="edit-panel" id="edit-panel">
     <div class="edit-top">
       <span class="edit-label" id="edit-title-label">NEW NOTE</span>
-      <button class="edit-save-btn" onclick="closeEdit(true)">← 閉じる</button>
+      <div class="edit-top-btns" id="edit-top-btns"></div>
     </div>
     <textarea class="edit-textarea" id="edit-textarea" placeholder="1行目がタイトルになります…"></textarea>
-    <div class="edit-hint">1行目 = タイトル　／　Ctrl+Enter または「← 閉じる」で保存して閉じる</div>
+    <div class="edit-hint" id="edit-hint">1行目 = タイトル　／　Ctrl+Enter または「✓ 保存」で保存して閉じる</div>
     <div class="edit-actions" id="edit-actions"></div>
   </div>
 </div>
@@ -408,6 +411,19 @@ function closeEdit(save=true){
   forceCloseEdit();
 }
 function forceCloseEdit(){document.getElementById('edit-overlay').classList.remove('show');editId=null;delete document.querySelector('.edit-panel').dataset.bg;}
+let editOriginalBg='none';
+function cancelEdit(){
+  if(editId){
+    const n=[...notes,...trash].find(x=>x.id===editId);
+    if(n&&(n.bg||'none')!==editOriginalBg){n.bg=editOriginalBg;persist();}
+  }
+  forceCloseEdit();renderAll();
+}
+function topButtonsHTML(hasOriginal){
+  let h=`<button class="edit-save-btn" onclick="closeEdit(true)">✓ 保存</button>`;
+  if(hasOriginal)h+=`<button class="edit-cancel-btn" onclick="cancelEdit()">✕ キャンセル</button>`;
+  return h;
+}
 
 function openNew(){
   editId=null;
@@ -415,6 +431,8 @@ function openNew(){
   document.getElementById('edit-textarea').value='';
   document.querySelector('.edit-panel').style.borderTopColor='var(--prism-blue)';
   delete document.querySelector('.edit-panel').dataset.bg;
+  document.getElementById('edit-top-btns').innerHTML=topButtonsHTML(false);
+  document.getElementById('edit-hint').textContent='1行目 = タイトル　／　Ctrl+Enter または「✓ 保存」で保存して閉じる';
   document.getElementById('edit-actions').innerHTML=buildActions(null,false,false);
   document.getElementById('edit-overlay').classList.add('show');
   setTimeout(()=>document.getElementById('edit-textarea').focus(),50);
@@ -423,11 +441,14 @@ function openEdit(id){
   const all=[...notes,...trash];
   const nn=all.find(x=>x.id===id);if(!nn)return;
   editId=id;
+  editOriginalBg=nn.bg||'none';
   const isArc=nn.archived,isTrsh=!!nn.trashedAt&&!notes.find(x=>x.id===id);
   document.getElementById('edit-title-label').textContent='EDIT NOTE';
   document.getElementById('edit-textarea').value=nn.text||'';
   document.querySelector('.edit-panel').style.borderTopColor='var(--prism-blue)';
   document.querySelector('.edit-panel').dataset.bg=nn.bg||'none';
+  document.getElementById('edit-top-btns').innerHTML=topButtonsHTML(true);
+  document.getElementById('edit-hint').textContent='1行目 = タイトル　／　Ctrl+Enter または「✓ 保存」で保存して閉じる　／「✕ キャンセル」で変更取消';
   document.getElementById('edit-actions').innerHTML=buildActions(nn,isArc,isTrsh);
   document.getElementById('edit-overlay').classList.add('show');
   setTimeout(()=>{const ta=document.getElementById('edit-textarea');ta.focus();ta.selectionStart=ta.selectionEnd=ta.value.length;},50);
