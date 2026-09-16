@@ -494,7 +494,12 @@ const COMPANY_AI_URL='https://auth.userlocal.jp/login?return_url=https%3A%2F%2Fs
 function openCompanyAI(){
   const txt=document.getElementById('edit-textarea').value;
   if(!txt){showToast('テキストを入力してください');return;}
-  const doOpen=()=>{window.open(COMPANY_AI_URL,'_blank');showToast('コピーしました。貼り付けてください');};
+  const doOpen=()=>{
+    const a=document.createElement('a');
+    a.href=COMPANY_AI_URL;a.target='_blank';a.rel='noopener';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    showToast('コピーしました。貼り付けてください');
+  };
   if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(doOpen).catch(()=>{fallbackCopy(txt);doOpen();});}
   else{fallbackCopy(txt);doOpen();}
 }
