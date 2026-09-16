@@ -126,6 +126,15 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .cp-dot.yellow{background:#6b5500}
 .cp-dot.green{background:#1a5c2a}
 .cp-dot.blue{background:#1a4a8a}
+.color-filter-bar{display:flex;gap:8px;align-items:center;padding:2px 2px 10px;flex-wrap:wrap}
+.cf-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;transition:.15s;flex-shrink:0}
+.cf-dot:hover{transform:scale(1.15)}
+.cf-dot.active{border-color:#fff;box-shadow:0 0 0 2px var(--prism-blue)}
+.cf-dot.none{background:var(--surface3)}
+.cf-dot.red{background:#7a2020}
+.cf-dot.yellow{background:#6b5500}
+.cf-dot.green{background:#1a5c2a}
+.cf-dot.blue{background:#1a4a8a}
 
 .overlay{display:none;position:fixed;inset:0;background:rgba(6,5,14,.85);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:20px}
 .overlay.show{display:flex}
@@ -211,6 +220,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
       </div>
       <button class="icon-btn" id="compact-btn" onclick="toggleCompact()">⊞</button>
     </div>
+    <div class="color-filter-bar" id="colorfilter-notes"></div>
     <div id="notes-grid" class="notes-grid normal"></div>
   </div>
   <div id="pane-archive" style="display:none">
@@ -221,6 +231,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
         <input class="search-box" id="search-archive" type="search" placeholder="Search…" oninput="renderArchive()">
       </div>
     </div>
+    <div class="color-filter-bar" id="colorfilter-archive"></div>
     <div id="archive-grid" class="notes-grid normal"></div>
   </div>
   <div id="pane-trash" style="display:none">
@@ -261,6 +272,45 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
 let trashTimers={}, toastTimer=null, deferredPrompt=null;
 const COLORS=['none','red','yellow','green','blue'];
+let colorLabels={}; // {color:{name,updated}}
+try{colorLabels=JSON.parse(localStorage.getItem('sn3_color_labels')||'{}');}catch(e){colorLabels={};}
+function saveColorLabels(){try{localStorage.setItem('sn3_color_labels',JSON.stringify(colorLabels));}catch(e){}}
+function colorName(c){return(colorLabels[c]&&colorLabels[c].name)||({none:'なし',red:'赤',yellow:'黄',green:'緑',blue:'青'})[c];}
+let filterColor={notes:null,archive:null};
+function renameColor(color){
+  const cur=(colorLabels[color]&&colorLabels[color].name)||'';
+  const name=prompt(`「${({none:'なし',red:'赤',yellow:'黄',green:'緑',blue:'青'})[color]}」の分類名を入力（空欄でリセット）`,cur);
+  if(name===null)return;
+  const trimmed=name.trim();
+  if(trimmed)colorLabels[color]={name:trimmed,updated:Date.now()};else{delete colorLabels[color];colorLabels[color]={name:'',updated:Date.now()};}
+  saveColorLabels();renderAll();renderColorFilters();schedulePushColors();
+}
+let pressTimer=null;
+function bindLongPress(el,color){
+  const start=()=>{pressTimer=setTimeout(()=>renameColor(color),550);};
+  const cancel=()=>{clearTimeout(pressTimer);};
+  el.addEventListener('mousedown',start);el.addEventListener('touchstart',start,{passive:true});
+  el.addEventListener('mouseup',cancel);el.addEventListener('mouseleave',cancel);el.addEventListener('touchend',cancel);el.addEventListener('touchmove',cancel);
+}
+function colorFilterHTML(tab){
+  return COLORS.map(c=>`<div class="cf-dot ${c}${filterColor[tab]===c?' active':''}" data-color="${c}" data-tab="${tab}" title="${colorName(c)}"></div>`).join('');
+}
+function renderColorFilters(){
+  ['notes','archive'].forEach(tab=>{
+    const el=document.getElementById('colorfilter-'+tab);
+    if(!el)return;
+    el.innerHTML=colorFilterHTML(tab);
+    el.querySelectorAll('.cf-dot').forEach(dot=>{
+      const color=dot.dataset.color;
+      dot.addEventListener('click',()=>{
+        filterColor[tab]=filterColor[tab]===color?null:color;
+        renderColorFilters();
+        if(tab==='notes')renderNotes();else renderArchive();
+      });
+      bindLongPress(dot,color);
+    });
+  });
+}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`}
@@ -314,8 +364,7 @@ function switchTab(t){
 
 // 背景色ピッカーHTML
 function colorPickerHTML(currentBg){
-  const labels={none:'なし',red:'赤',yellow:'黄',green:'緑',blue:'青'};
-  return`<div class="color-picker">`+COLORS.map(c=>`<div class="cp-dot ${c}${currentBg===c?' active':''}" title="${labels[c]}" onclick="setBgColor('${c}')"></div>`).join('')+`</div>`;
+  return`<div class="color-picker">`+COLORS.map(c=>`<div class="cp-dot ${c}${currentBg===c?' active':''}" title="${colorName(c)}" onclick="setBgColor('${c}')"></div>`).join('')+`</div>`;
 }
 
 function buildActions(n,isArc,isTrsh){
@@ -516,7 +565,41 @@ async function syncPush(){
 let pushTimer=null;
 function schedulePush(){clearTimeout(pushTimer);pushTimer=setTimeout(syncPush,500);}
 function markDeleted(id){pendingDeletes.push({id,updated:Date.now()});schedulePush();}
-async function syncOnUnlock(){await syncPull();await syncPush();}
+
+// ===== 色ラベルの同期 =====
+async function syncColorsPull(){
+  const token=getSyncToken();if(!token)return;
+  try{
+    const res=await fetch(SYNC_URL+'/colors',{headers:{'X-App-Token':token}});
+    if(!res.ok)return;
+    const rows=await res.json();
+    let changed=false;
+    for(const r of rows){
+      const local=colorLabels[r.color];
+      if(!local||(r.updated||0)>(local.updated||0)){
+        colorLabels[r.color]={name:r.name||'',updated:r.updated||0};
+        changed=true;
+      }
+    }
+    if(changed){saveColorLabels();renderAll();renderColorFilters();}
+  }catch(e){/* オフライン等は無視 */}
+}
+let colorSyncing=false;
+async function syncColorsPush(){
+  const token=getSyncToken();if(!token)return;
+  if(colorSyncing)return;colorSyncing=true;
+  const payload=COLORS.filter(c=>colorLabels[c]).map(c=>({color:c,name:colorLabels[c].name||'',updated:colorLabels[c].updated||Date.now()}));
+  if(payload.length){
+    try{
+      await fetch(SYNC_URL+'/colors/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({colors:payload})});
+    }catch(e){/* オフライン等は無視 */}
+  }
+  colorSyncing=false;
+}
+let colorPushTimer=null;
+function schedulePushColors(){clearTimeout(colorPushTimer);colorPushTimer=setTimeout(syncColorsPush,500);}
+
+async function syncOnUnlock(){await syncPull();await syncColorsPull();await syncPush();await syncColorsPush();}
 function isUnlocked(){return document.getElementById('lock-screen').classList.contains('hide');}
 
 // ===== 選択肢A: 復帰時＋定期的な自動同期 =====
@@ -562,7 +645,8 @@ function makeCard(n,opts={}){
 
 function renderNotes(){
   const q=document.getElementById('search-notes').value.trim().toLowerCase();
-  const active=notes.filter(n=>!n.archived&&(!q||(n.text||'').toLowerCase().includes(q)));
+  const fc=filterColor.notes;
+  const active=notes.filter(n=>!n.archived&&(!q||(n.text||'').toLowerCase().includes(q))&&(!fc||(n.bg||'none')===fc));
   const pinned=active.filter(n=>n.pinned),unpinned=active.filter(n=>!n.pinned);
   let html='';
   if(pinned.length)html+=`<div class="section-label">PINNED</div>${pinned.map(n=>makeCard(n)).join('')}`;
@@ -572,7 +656,8 @@ function renderNotes(){
 }
 function renderArchive(){
   const q=document.getElementById('search-archive').value.trim().toLowerCase();
-  const list=notes.filter(n=>n.archived&&(!q||(n.text||'').toLowerCase().includes(q)));
+  const fc=filterColor.archive;
+  const list=notes.filter(n=>n.archived&&(!q||(n.text||'').toLowerCase().includes(q))&&(!fc||(n.bg||'none')===fc));
   document.getElementById('archive-grid').innerHTML=list.length?list.map(n=>makeCard(n,{isArc:true})).join(''):`<div class="empty">No archived notes</div>`;
   document.getElementById('arc-cnt').textContent=list.length;updateBadges();
 }
@@ -630,7 +715,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
-load();renderAll();updateStorage();
+renderColorFilters();load();renderAll();updateStorage();
 </script>
 </body>
 </html>
