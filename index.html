@@ -24,7 +24,7 @@
 html,body{height:100%;overflow:hidden}
 body{font-family:'Segoe UI',Meiryo,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
 header{flex-shrink:0;background:var(--surface);padding:0 16px;height:50px;display:flex;align-items:center;gap:10px;border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a) 1}
-.logo{font-size:1.15rem;font-weight:900;letter-spacing:.18em;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo{font-size:1.1rem;font-weight:700;letter-spacing:.16em;color:var(--muted2)}
 .ver{font-size:.62rem;color:var(--muted);white-space:nowrap;flex:1}
 .storage-bar{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
 .storage-bar .bar{width:48px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
@@ -77,7 +77,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .note-meta{display:flex;align-items:center;gap:5px;margin-bottom:5px}
 .note-date{font-size:.65rem;color:var(--muted);flex:1;font-family:monospace}
 .pin-dot{width:7px;height:7px;border-radius:2px;background:var(--prism-yellow);flex-shrink:0}
-.arc-badge{font-size:.6rem;background:var(--surface3);color:var(--muted2);border-radius:4px;padding:1px 5px;border:1px solid var(--border2)}
+.arc-badge{font-size:.6rem;background:var(--surface3);color:var(--muted2);border-radius:4px;padding:1px 5px;border:1px solid var(--border2);display:inline-flex;align-items:center;gap:2px}
+.arc-badge svg{vertical-align:middle}
 .note-title{font-size:.85rem;font-weight:700;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note-body{font-size:.8rem;line-height:1.5;color:var(--muted2);word-break:break-word;white-space:pre-wrap;flex:1;overflow:hidden;max-height:80px}
 .compact .note{padding:8px 10px;min-height:unset}
@@ -110,7 +111,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .edit-textarea::placeholder{color:var(--muted)}
 .edit-hint{flex-shrink:0;padding:4px 14px 6px;font-size:.67rem;color:var(--muted);letter-spacing:.04em}
 .edit-actions{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.ea-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);padding:6px 11px;border-radius:6px;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap}
+.ea-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);padding:6px 11px;border-radius:6px;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.ea-btn svg,.edit-save-btn svg,.edit-cancel-btn svg,.hbtn svg,.icon-btn svg{vertical-align:middle;flex-shrink:0}
 .ea-btn:hover{background:var(--surface3)}
 .ea-btn.pin{border-color:rgba(232,201,74,.4);color:var(--prism-yellow)}
 .ea-btn.pin:hover{background:rgba(232,201,74,.1)}
@@ -162,7 +164,8 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 /* ロック画面 */
 #lock-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px}
 #lock-screen.hide{display:none}
-.lock-logo{font-size:1.6rem;font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lock-logo{font-size:1.5rem;font-weight:700;letter-spacing:.18em;color:var(--muted2)}
+.lock-icon{color:var(--muted);margin-bottom:2px}
 .lock-box{display:flex;flex-direction:column;gap:10px;align-items:center;width:240px}
 #lock-input{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:8px;font-size:.95rem;background:var(--surface);color:var(--text);outline:none;text-align:center;letter-spacing:.1em}
 #lock-input:focus{border-color:var(--prism-blue)}
@@ -176,6 +179,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <body>
 
 <div id="lock-screen">
+  <svg class="lock-icon" width="30" height="30" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="10" height="7" rx="1.5"/><path d="M6 8V5.5a3 3 0 0 1 6 0V8"/></svg>
   <span class="lock-logo">MEMO</span>
   <div class="lock-box" id="lock-box-enter" style="display:none">
     <input type="password" id="lock-input" placeholder="パスワード" autocomplete="off">
@@ -200,7 +204,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   </div>
   <button class="hbtn" onclick="exportJSON()">EXPORT</button>
   <label class="hbtn" style="cursor:pointer">IMPORT<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
-  <button class="hbtn" onclick="lockNow()">🔒</button>
+  <button class="hbtn" onclick="lockNow()"><svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="10" height="7" rx="1.5"/><path d="M6 8V5.5a3 3 0 0 1 6 0V8"/></svg></button>
 </header>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('notes')" id="tab-notes">NOTES <span class="badge" id="badge-notes">0</span></div>
@@ -212,16 +216,16 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
   <div id="install-banner">
     <span>ホーム画面に追加してオフラインでも使えます</span>
     <button id="install-btn" onclick="installPWA()">インストール</button>
-    <button id="install-dismiss" onclick="document.getElementById('install-banner').classList.remove('show')">✕</button>
+    <button id="install-dismiss" onclick="document.getElementById('install-banner').classList.remove('show')"><svg width="12" height="12" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/></svg></button>
   </div>
   <div id="pane-notes">
     <div class="toolbar">
       <button class="add-btn" onclick="openNew()">＋ NEW</button>
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon"><svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="15" y2="15"/></svg></span>
         <input class="search-box" id="search-notes" type="search" placeholder="Search…" oninput="renderNotes()">
       </div>
-      <button class="icon-btn" id="compact-btn" onclick="toggleCompact()">⊞</button>
+      <button class="icon-btn" id="compact-btn" onclick="toggleCompact()"></button>
     </div>
     <div class="color-filter-bar" id="colorfilter-notes"></div>
     <div id="notes-grid" class="notes-grid normal"></div>
@@ -230,7 +234,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
     <div class="toolbar">
       <div class="arc-header" style="flex:1"><h2>ARCHIVE</h2><span class="arc-cnt" id="arc-cnt">0</span></div>
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon"><svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="15" y2="15"/></svg></span>
         <input class="search-box" id="search-archive" type="search" placeholder="Search…" oninput="renderArchive()">
       </div>
     </div>
@@ -274,6 +278,24 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 <script>
 let notes=[], trash=[], editId=null, deleteId=null, compact=false, currentTab='notes';
 let trashTimers={}, toastTimer=null, deferredPrompt=null;
+// ===== 線画アイコン(Claude風シンプルアイコン) =====
+const ICON_PATHS={
+  check:'<polyline points="4 10 8 14 16 5"/>',
+  x:'<line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/>',
+  trash:'<path d="M3 5h12"/><path d="M6.5 5V3.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V5"/><path d="M5 5l.7 9a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L13 5"/>',
+  search:'<circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="15" y2="15"/>',
+  grid:'<rect x="2" y="2" width="6" height="6" rx="1"/><rect x="10" y="2" width="6" height="6" rx="1"/><rect x="2" y="10" width="6" height="6" rx="1"/><rect x="10" y="10" width="6" height="6" rx="1"/>',
+  list:'<line x1="2" y1="4" x2="16" y2="4"/><line x1="2" y1="9" x2="16" y2="9"/><line x1="2" y1="14" x2="16" y2="14"/>',
+  pin:'<path d="M9 2l5 5-3 1.2L15 14l-1.2 1.2-5.8-4.2L4 15l-1-1 4-4L2.8 4.8 4 3.6l5.4 3.8L10.5 4"/>',
+  pinOff:'<path d="M9 2l5 5-3 1.2L15 14l-1.2 1.2-5.8-4.2L4 15l-1-1 4-4L2.8 4.8 4 3.6l5.4 3.8L10.5 4" opacity=".5"/>',
+  archive:'<rect x="2" y="3" width="14" height="4" rx="1"/><path d="M3.5 7v6.5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7"/><line x1="7" y1="9.5" x2="11" y2="9.5"/>',
+  undo:'<path d="M4 6H12a4 4 0 0 1 0 8H8"/><polyline points="6.5 3 4 6 6.5 9"/>',
+  lock:'<rect x="4" y="8" width="10" height="7" rx="1.5"/><path d="M6 8V5.5a3 3 0 0 1 6 0V8"/>',
+  sparkle:'<path d="M9 2l1.3 4.7L15 8l-4.7 1.3L9 14l-1.3-4.7L3 8l4.7-1.3z"/>',
+  clock:'<circle cx="9" cy="9" r="6.5"/><polyline points="9 5.5 9 9 11.5 10.5"/>',
+};
+function ic(name,size=14){return`<svg width="${size}" height="${size}" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||''}</svg>`;}
+
 const COLORS=['none','red','yellow','green','blue'];
 let colorLabels={}; // {color:{name,updated}}
 try{colorLabels=JSON.parse(localStorage.getItem('sn3_color_labels')||'{}');}catch(e){colorLabels={};}
@@ -357,7 +379,7 @@ if('serviceWorker' in navigator){
 function toggleCompact(){
   compact=!compact;
   document.querySelectorAll('.notes-grid').forEach(el=>{el.classList.toggle('normal',!compact);el.classList.toggle('compact',compact)});
-  const b=document.getElementById('compact-btn');b.textContent=compact?'⊟':'⊞';b.classList.toggle('active',compact);
+  const b=document.getElementById('compact-btn');b.innerHTML=ic(compact?'list':'grid');b.classList.toggle('active',compact);
 }
 function switchTab(t){
   currentTab=t;
@@ -374,23 +396,23 @@ function buildActions(n,isArc,isTrsh){
   let acts='';
   if(!isArc&&!isTrsh&&n){
     acts+=colorPickerHTML(n.bg||'none');
-    acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}')">${n.pinned?'📍 解除':'📌 ピン'}</button>`;
-    acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}')">📦 保存</button>`;
-    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn pin" onclick="togglePin('${n.id}')">${n.pinned?ic('pinOff')+' 解除':ic('pin')+' ピン'}</button>`;
+    acts+=`<button class="ea-btn arc" onclick="archiveNote('${n.id}')">${ic('archive')} 保存</button>`;
+    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">${ic('trash')} 削除</button>`;
   } else if(!isArc&&!isTrsh&&!n){
     acts+=colorPickerHTML('none');
-    acts+=`<button class="ea-btn pin" onclick="saveAndPin()">📌 ピンで保存</button>`;
-    acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">📦 アーカイブで保存</button>`;
-    acts+=`<button class="ea-btn del" onclick="discardNew()">🗑 破棄</button>`;
+    acts+=`<button class="ea-btn pin" onclick="saveAndPin()">${ic('pin')} ピンで保存</button>`;
+    acts+=`<button class="ea-btn arc" onclick="saveAndArchive()">${ic('archive')} アーカイブで保存</button>`;
+    acts+=`<button class="ea-btn del" onclick="discardNew()">${ic('trash')} 破棄</button>`;
   } else if(isArc&&n){
     acts+=colorPickerHTML(n.bg||'none');
-    acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}')">↩ 戻す</button>`;
-    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">🗑 削除</button>`;
+    acts+=`<button class="ea-btn arc" onclick="unarchiveNote('${n.id}')">${ic('undo')} 戻す</button>`;
+    acts+=`<button class="ea-btn del" onclick="deleteFromEdit('${n.id}')">${ic('trash')} 削除</button>`;
   } else if(isTrsh&&n){
-    acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');forceCloseEdit()">↩ 復元</button>`;
-    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">✕ 完全削除</button>`;
+    acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');forceCloseEdit()">${ic('undo')} 復元</button>`;
+    acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">${ic('x')} 完全削除</button>`;
   }
-  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">✨ AI連携</button>`;
+  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">${ic('sparkle')} AI連携</button>`;
   return acts;
 }
 
@@ -420,8 +442,8 @@ function cancelEdit(){
   forceCloseEdit();renderAll();
 }
 function topButtonsHTML(hasOriginal){
-  let h=`<button class="edit-save-btn" onclick="closeEdit(true)">✓ 保存</button>`;
-  if(hasOriginal)h+=`<button class="edit-cancel-btn" onclick="cancelEdit()">✕ キャンセル</button>`;
+  let h=`<button class="edit-save-btn" onclick="closeEdit(true)">${ic('check')} 保存</button>`;
+  if(hasOriginal)h+=`<button class="edit-cancel-btn" onclick="cancelEdit()">${ic('x')} キャンセル</button>`;
   return h;
 }
 
@@ -657,7 +679,7 @@ function makeCard(n,opts={}){
   const body=lines.slice(1).join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const ts=fmtDate(isArc?n.archivedAt:isTrsh?n.trashedAt:n.updated);
   let extra='';
-  if(isTrsh){const rem=Math.max(0,Math.round((30000-(Date.now()-(n.trashedAt||0)))/1000));extra=`<span class="arc-badge">⏱${rem}s</span>`;}
+  if(isTrsh){const rem=Math.max(0,Math.round((30000-(Date.now()-(n.trashedAt||0)))/1000));extra=`<span class="arc-badge">${ic('clock',11)}${rem}s</span>`;}
   else if(isArc){extra=`<span class="arc-badge">archived</span>`;}
   const drag=(!isArc&&!isTrsh)?`draggable="true" ondragstart="onDragStart(event,'${n.id}')" ondragend="onDragEnd(event,'${n.id}')" ondragover="onDragOver(event,'${n.id}')" ondrop="onDrop(event,'${n.id}')"`:''
   const pin=n.pinned&&!isArc&&!isTrsh?`<span class="pin-dot"></span>`:'';
@@ -741,6 +763,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
+document.getElementById('compact-btn').innerHTML=ic('grid');
 renderColorFilters();load();renderAll();updateStorage();
 </script>
 </body>
