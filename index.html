@@ -414,7 +414,7 @@ function buildActions(n,isArc,isTrsh){
     acts+=`<button class="ea-btn arc" onclick="restoreFromTrash('${n.id}');forceCloseEdit()">${ic('undo')} 復元</button>`;
     acts+=`<button class="ea-btn del" onclick="permDelete('${n.id}');forceCloseEdit()">${ic('x')} 完全削除</button>`;
   }
-  acts+=`<button class="ea-btn" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple)" onclick="openCompanyAI()">${ic('sparkle')} AI連携</button>`;
+  acts+=`<a class="ea-btn" href="${COMPANY_AI_URL}" target="_blank" rel="noopener" onclick="copyForCompanyAI(event)" style="border-color:rgba(156,111,219,.4);color:var(--prism-purple);text-decoration:none">${ic('sparkle')} AI連携</a>`;
   return acts;
 }
 
@@ -536,17 +536,16 @@ function fallbackCopy(txt){
   document.body.removeChild(ta);
 }
 const COMPANY_AI_URL='https://auth.userlocal.jp/login?return_url=https%3A%2F%2Fsupport-web.userlocal.jp%2Fja%2Fgpts%2Fea53c0ab9d24a7752b0c&service=ulgpt';
-function openCompanyAI(){
+function copyForCompanyAI(ev){
   const txt=document.getElementById('edit-textarea').value;
-  if(!txt){showToast('テキストを入力してください');return;}
-  const doOpen=()=>{
-    const a=document.createElement('a');
-    a.href=COMPANY_AI_URL;a.target='_blank';a.rel='noopener';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    showToast('コピーしました。貼り付けてください');
-  };
-  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(doOpen).catch(()=>{fallbackCopy(txt);doOpen();});}
-  else{fallbackCopy(txt);doOpen();}
+  if(!txt){ev.preventDefault();showToast('テキストを入力してください');return;}
+  // リンクの遷移自体はブラウザ標準のクリックとして進める（オートフィル等を正しく働かせるため）。
+  // コピーは並行して非同期に行う。
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(()=>showToast('コピーしました。貼り付けてください')).catch(()=>fallbackCopy(txt));
+  }else{
+    fallbackCopy(txt);
+  }
 }
 
 // ===== 端末間同期 =====
