@@ -25,6 +25,7 @@ html,body{height:100%;overflow:hidden}
 body{font-family:'Segoe UI',Meiryo,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
 header{flex-shrink:0;background:var(--surface);padding:0 16px;height:50px;display:flex;align-items:center;gap:10px;border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#4caf7d,#5b9bd5,#9c6fdb,#e8834a) 1}
 .logo{font-size:1.1rem;font-weight:700;letter-spacing:.16em;color:var(--muted2)}
+.app-ver{font-size:.62rem;color:var(--muted);letter-spacing:.04em;margin-left:-4px}
 .ver{font-size:.62rem;color:var(--muted);white-space:nowrap;flex:1}
 .storage-bar{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
 .storage-bar .bar{width:48px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
@@ -196,7 +197,7 @@ main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </div>
 
 <header>
-  <span class="logo">MEMO</span>
+  <span class="logo">MEMO</span><span class="app-ver" id="app-ver"></span>
   <div class="storage-bar" id="storage-bar">
     <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
     <span class="pct" id="bar-pct">0%</span>
@@ -827,6 +828,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 setInterval(()=>{if(currentTab==='trash'&&trash.length)renderTrash();},4000);
 document.getElementById('compact-btn').innerHTML=ic('grid');
+const APP_VERSION='v18'; // sw.js の CACHE（sticky-vNN）と同じ番号に揃える
+document.getElementById('app-ver').textContent=APP_VERSION;
 renderColorFilters();load();renderAll();updateStorage();
 </script>
 </body>
