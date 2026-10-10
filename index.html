@@ -421,7 +421,7 @@ function setBgColor(color){
   // 既存メモなら即保存
   if(editId){
     const n=notes.find(x=>x.id===editId);
-    if(n){n.bg=color;persist();renderAll();}
+    if(n){n.bg=color;n.updated=Date.now();persist();renderAll();}
   }
 }
 function getCurrentBg(){return document.querySelector('.edit-panel').dataset.bg||'none'}
@@ -435,7 +435,7 @@ let editOriginalBg='none';
 function cancelEdit(){
   if(editId){
     const n=[...notes,...trash].find(x=>x.id===editId);
-    if(n&&(n.bg||'none')!==editOriginalBg){n.bg=editOriginalBg;persist();}
+    if(n&&(n.bg||'none')!==editOriginalBg){n.bg=editOriginalBg;n.updated=Date.now();persist();}
   }
   forceCloseEdit();renderAll();
 }
@@ -496,9 +496,9 @@ function saveAndArchive(){
 }
 function discardNew(){document.getElementById('edit-textarea').value='';forceCloseEdit();showToast('破棄しました');}
 
-function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;_commitSave();n.pinned=!n.pinned;persist();renderAll();forceCloseEdit();}
-function archiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=true;n.archivedAt=Date.now();persist();renderAll();forceCloseEdit();}
-function unarchiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=false;delete n.archivedAt;persist();renderAll();forceCloseEdit();}
+function togglePin(id){const n=notes.find(x=>x.id===id);if(!n)return;_commitSave();n.pinned=!n.pinned;n.updated=Date.now();persist();renderAll();forceCloseEdit();}
+function archiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=true;n.archivedAt=Date.now();n.updated=n.archivedAt;persist();renderAll();forceCloseEdit();}
+function unarchiveNote(id){_commitSave();const n=notes.find(x=>x.id===id);if(!n)return;n.archived=false;delete n.archivedAt;n.updated=Date.now();persist();renderAll();forceCloseEdit();}
 function deleteFromEdit(id){document.getElementById('edit-overlay').classList.remove('show');editId=null;deleteId=id;document.getElementById('modal-del').classList.add('show');}
 function askDelete(id){deleteId=id;document.getElementById('modal-del').classList.add('show')}
 function confirmDelete(){
@@ -512,7 +512,7 @@ function confirmDelete(){
 function restoreFromTrash(id){
   const n=trash.find(x=>x.id===id);if(!n)return;
   clearTimeout(trashTimers[id]);delete trashTimers[id];
-  trash=trash.filter(x=>x.id!==id);n.archived=false;delete n.trashedAt;
+  trash=trash.filter(x=>x.id!==id);n.archived=false;delete n.trashedAt;n.updated=Date.now();
   notes.unshift(n);persist();renderAll();
 }
 function undoTrash(){if(deleteId)restoreFromTrash(deleteId);hideToast()}
@@ -545,9 +545,24 @@ function copyForCompanyAI(ev){
 // ===== 端末間同期 =====
 const SYNC_URL='https://memo-sync.ksey-fgljfsmg7475219t.workers.dev';
 let pendingDeletes=[]; // 完全削除の墓標（次回同期時にサーバーへ伝える）
-let syncing=false;
+let syncing=false,pushAgain=false;
 
 function getSyncToken(){return localStorage.getItem('memo_lock_hash');}
+
+// ---- 差分送信用：「サーバーと一致している」と分かっているメモの指紋を端末に保存 ----
+function hash53(str){
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return 4294967296*(2097151&h2)+(h1>>>0);
+}
+function loadSnap(k){try{return JSON.parse(localStorage.getItem(k)||'{}')||{};}catch(e){return{};}}
+function saveSnap(k,o){try{localStorage.setItem(k,JSON.stringify(o));}catch(e){}}
+let noteSnap=loadSnap('sn3_sync_snap');
+let colorSnap=loadSnap('sn3_sync_snap_c');
+function noteSig(n){return hash53(JSON.stringify([n.id,n.text,n.bg||'none',n.created,n.updated,n.archived?1:0,n.archivedAt||null,n.pinned?1:0,n.trashedAt||null]));}
+function colorSig(l){return hash53(JSON.stringify([l.name||'',l.updated||0]));}
 
 function rowToLocal(r){
   return{id:r.id,text:r.text,bg:r.bg||'none',created:r.created,updated:r.updated,
@@ -564,6 +579,13 @@ function mergeServerRows(rows){
     const localTs=local?Math.max(local.updated||0,local.trashedAt||0):-1;
     if(!local||remoteTs>localTs)map.set(r.id,rowToLocal(r));
   }
+  // サーバーと同じ内容のメモは「送信不要」として記録
+  for(const r of rows){
+    if(r.deleted){delete noteSnap[r.id];continue;}
+    const cur=map.get(r.id);
+    if(cur&&noteSig(cur)===noteSig(rowToLocal(r)))noteSnap[r.id]=noteSig(cur);
+  }
+  saveSnap('sn3_sync_snap',noteSnap);
   const merged=[...map.values()];
   notes=merged.filter(n=>!n.trashedAt);
   trash=merged.filter(n=>!!n.trashedAt);
@@ -575,34 +597,56 @@ function mergeServerRows(rows){
   });
 }
 
+// 読むだけ（D1への書き込みなし）
 async function syncPull(){
   const token=getSyncToken();if(!token)return;
   try{
     const res=await fetch(SYNC_URL+'/notes',{headers:{'X-App-Token':token}});
     if(!res.ok)return;
     const rows=await res.json();
+    const before=JSON.stringify([notes,trash]);
     mergeServerRows(rows);
-    persist(false);renderAll();
+    if(JSON.stringify([notes,trash])!==before){persist(false);renderAll();}
   }catch(e){/* オフライン等は無視 */}
 }
 
+// 前回サーバーと一致した内容から変わったメモだけ送る（変更がなければ通信しない）
 async function syncPush(){
   const token=getSyncToken();if(!token)return;
-  if(syncing)return;syncing=true;
-  const payload=[...notes,...trash].map(n=>({
-    id:n.id,text:n.text,bg:n.bg||'none',created:n.created,updated:n.updated,
-    archived:n.archived?1:0,archivedAt:n.archivedAt||null,
-    pinned:n.pinned?1:0,trashedAt:n.trashedAt||null,deleted:0
-  }));
-  const tombstones=pendingDeletes.map(d=>({
+  if(syncing){pushAgain=true;return;}
+  const all=[...notes,...trash];
+  const sent={};
+  const payload=[];
+  for(const n of all){
+    const sig=noteSig(n);
+    if(noteSnap[n.id]===sig)continue;
+    sent[n.id]=sig;
+    payload.push({
+      id:n.id,text:n.text,bg:n.bg||'none',created:n.created,updated:n.updated,
+      archived:n.archived?1:0,archivedAt:n.archivedAt||null,
+      pinned:n.pinned?1:0,trashedAt:n.trashedAt||null,deleted:0
+    });
+  }
+  const dels=pendingDeletes.slice();
+  const tombstones=dels.map(d=>({
     id:d.id,text:'',bg:'none',created:d.updated,updated:d.updated,
     archived:0,archivedAt:null,pinned:0,trashedAt:null,deleted:1
   }));
+  if(!payload.length&&!tombstones.length)return;
+  syncing=true;
   try{
-    await fetch(SYNC_URL+'/notes/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({notes:[...payload,...tombstones]})});
-    pendingDeletes=[];
+    const res=await fetch(SYNC_URL+'/notes/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({notes:[...payload,...tombstones]})});
+    if(res.ok){
+      Object.assign(noteSnap,sent);
+      dels.forEach(d=>{delete noteSnap[d.id];});
+      pendingDeletes=pendingDeletes.filter(d=>!dels.includes(d));
+      const alive=new Set(all.map(n=>n.id));
+      Object.keys(noteSnap).forEach(k=>{if(!alive.has(k))delete noteSnap[k];});
+      saveSnap('sn3_sync_snap',noteSnap);
+    }
   }catch(e){/* オフライン等は無視、次回同期時に再送 */}
   syncing=false;
+  if(pushAgain){pushAgain=false;schedulePush();}
 }
 
 let pushTimer=null;
@@ -624,33 +668,57 @@ async function syncColorsPull(){
         changed=true;
       }
     }
+    for(const r of rows){
+      const l=colorLabels[r.color];
+      if(l&&(l.name||'')===(r.name||'')&&(l.updated||0)===(r.updated||0))colorSnap[r.color]=colorSig(l);
+    }
+    saveSnap('sn3_sync_snap_c',colorSnap);
     if(changed){saveColorLabels();renderAll();renderColorFilters();}
   }catch(e){/* オフライン等は無視 */}
 }
 let colorSyncing=false;
 async function syncColorsPush(){
   const token=getSyncToken();if(!token)return;
-  if(colorSyncing)return;colorSyncing=true;
-  const payload=COLORS.filter(c=>colorLabels[c]).map(c=>({color:c,name:colorLabels[c].name||'',updated:colorLabels[c].updated||Date.now()}));
-  if(payload.length){
-    try{
-      await fetch(SYNC_URL+'/colors/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({colors:payload})});
-    }catch(e){/* オフライン等は無視 */}
+  if(colorSyncing)return;
+  const sent={};
+  const payload=[];
+  for(const c of COLORS){
+    const l=colorLabels[c];if(!l)continue;
+    const sig=colorSig(l);
+    if(colorSnap[c]===sig)continue;
+    sent[c]=sig;
+    payload.push({color:c,name:l.name||'',updated:l.updated||Date.now()});
   }
+  if(!payload.length)return;
+  colorSyncing=true;
+  try{
+    const res=await fetch(SYNC_URL+'/colors/sync',{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify({colors:payload})});
+    if(res.ok){Object.assign(colorSnap,sent);saveSnap('sn3_sync_snap_c',colorSnap);}
+  }catch(e){/* オフライン等は無視 */}
   colorSyncing=false;
 }
 let colorPushTimer=null;
 function schedulePushColors(){clearTimeout(colorPushTimer);colorPushTimer=setTimeout(syncColorsPush,500);}
 
-async function syncOnUnlock(){await syncPull();await syncColorsPull();await syncPush();await syncColorsPush();}
+// ===== 同期の実行 =====
+// 読み込み → （変更があれば）送信。変更がなければ書き込みは発生しない
+let lastSyncAt=0,syncBusy=false;
+async function runSync(){
+  if(syncBusy)return;
+  syncBusy=true;
+  try{await syncPull();await syncColorsPull();await syncPush();await syncColorsPush();}
+  finally{syncBusy=false;lastSyncAt=Date.now();}
+}
+// 復帰・フォーカス・ロック解除用（直前の同期から3秒以内なら重複として無視）
+async function syncOnUnlock(){if(Date.now()-lastSyncAt<3000)return;await runSync();}
 function isUnlocked(){return document.getElementById('lock-screen').classList.contains('hide');}
 
-// ===== 選択肢A: 復帰時＋定期的な自動同期 =====
+// ===== 復帰時＋定期的な自動同期（画面が非表示の間は止める） =====
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&isUnlocked())syncOnUnlock();
 });
 window.addEventListener('focus',()=>{if(isUnlocked())syncOnUnlock();});
-setInterval(()=>{if(isUnlocked())syncOnUnlock();},30000);
+setInterval(()=>{if(document.hidden||!isUnlocked())return;runSync();},30000);
 
 function showToast(msg){clearTimeout(toastTimer);document.getElementById('toast-msg').textContent=msg;document.getElementById('toast').classList.add('show');toastTimer=setTimeout(hideToast,5000);}
 function hideToast(){document.getElementById('toast').classList.remove('show')}
